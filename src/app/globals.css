@@ -1,0 +1,153 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  body {
+    @apply bg-gray-900 text-white antialiased;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-800;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-retro-600 rounded;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-retro-500;
+  }
+}
+
+@layer components {
+  /* Retro button styles */
+  .btn-retro {
+    @apply px-4 py-2 bg-retro-600 text-white font-pixel text-sm border-2 border-retro-400 rounded-none;
+    @apply hover:bg-retro-500 hover:border-retro-300 active:bg-retro-700;
+    @apply transition-colors duration-150;
+  }
+  
+  .btn-retro-secondary {
+    @apply px-4 py-2 bg-gray-700 text-white font-pixel text-sm border-2 border-gray-500 rounded-none;
+    @apply hover:bg-gray-600 hover:border-gray-400 active:bg-gray-800;
+    @apply transition-colors duration-150;
+  }
+  
+  /* Retro input styles */
+  .input-retro {
+    @apply px-3 py-2 bg-gray-800 text-white font-mono text-sm border-2 border-gray-600 rounded-none;
+    @apply focus:border-retro-500 focus:outline-none;
+    @apply placeholder-gray-400;
+  }
+  
+  /* Retro card styles */
+  .card-retro {
+    @apply bg-gray-800 border-2 border-gray-600 rounded-none;
+    @apply shadow-lg;
+  }
+  
+  /* Pixel art container */
+  .pixel-container {
+    @apply bg-gray-800 border-2 border-gray-600 rounded-none;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+  
+  /* Code editor styles */
+  .code-editor {
+    @apply font-mono text-sm;
+  }
+  
+  /* Animation classes */
+  .animate-pixel-bounce {
+    animation: pixel-bounce 0.5s ease-in-out;
+  }
+  
+  .animate-pixel-glow {
+    animation: pixel-glow 2s ease-in-out infinite alternate;
+  }
+}
+
+@layer utilities {
+  /* Text selection */
+  .select-retro {
+    @apply selection:bg-retro-500 selection:text-white;
+  }
+  
+  /* Focus styles */
+  .focus-retro {
+    @apply focus:outline-none focus:ring-2 focus:ring-retro-500 focus:ring-offset-2 focus:ring-offset-gray-900;
+  }
+  
+  /* Pixel perfect borders */
+  .border-pixel {
+    border-image: url("data:image/svg+xml,%3csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M0 0h100v2H0zM0 0v100h2V0zM98 0h2v100h-2zM0 98h100v2H0z' fill='%23374151'/%3e%3c/svg%3e") 2;
+  }
+}
+
+/* Custom animations */
+@keyframes pixel-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pixel-glow {
+  0% {
+    box-shadow: 0 0 5px #0ea5e9;
+  }
+  100% {
+    box-shadow: 0 0 20px #0ea5e9, 0 0 30px #0ea5e9;
+  }
+}
+
+/* WASM loading styles */
+.wasm-loading {
+  @apply flex items-center justify-center p-8;
+}
+
+.wasm-loading::after {
+  content: '';
+  @apply w-8 h-8 border-2 border-retro-500 border-t-transparent rounded-full animate-spin;
+}
+
+/* Editor specific styles */
+.editor-container {
+  @apply h-full flex flex-col bg-gray-900;
+}
+
+.editor-toolbar {
+  @apply bg-gray-800 border-b border-gray-600 p-2 flex items-center gap-2;
+}
+
+.editor-content {
+  @apply flex-1 overflow-hidden;
+}
+
+/* Responsive design helpers */
+@media (max-width: 640px) {
+  .btn-retro {
+    @apply px-2 py-1 text-xs;
+  }
+  
+  .input-retro {
+    @apply px-2 py-1 text-xs;
+  }
+}

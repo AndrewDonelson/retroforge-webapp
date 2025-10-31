@@ -16,7 +16,7 @@ const AceEditor = dynamic(async () => {
   return mod
 }, { ssr: false })
 
-type FileEntry = { name: string; path: string; language: 'lua' | 'json' | 'text'; content: string; isManifest: boolean }
+type FileEntry = { name: string; path: string; language: 'lua' | 'json' | 'text'; content: string; isManifest: boolean; isSFX?: boolean; isMusic?: boolean; isSprites?: boolean }
 
 function getLanguageFromPath(path: string): 'lua' | 'json' | 'text' {
   if (path.endsWith('.lua')) return 'lua'
@@ -25,7 +25,7 @@ function getLanguageFromPath(path: string): 'lua' | 'json' | 'text' {
 }
 
 export default function CodeEditorPage() {
-  const { cart, isLoading, updateAsset, updateManifest, cartId } = useEditor()
+  const { cart, isLoading, updateAsset, updateManifest, updateSprites, cartId } = useEditor()
   const { user } = useAuth()
   const saveFile = useMutation(api.cartFiles.saveCartFile)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
@@ -43,6 +43,72 @@ export default function CodeEditorPage() {
         language: 'json',
         content: JSON.stringify(cart.manifest, null, 2),
         isManifest: true,
+      })
+    }
+
+    // Add sfx.json from assets/ if cart exists and has sfx data
+    if (cart?.sfx && Object.keys(cart.sfx).length > 0) {
+      fileEntries.push({
+        name: 'sfx.json',
+        path: '/project/assets/sfx.json',
+        language: 'json',
+        content: JSON.stringify(cart.sfx, null, 2),
+        isManifest: false,
+        isSFX: true,
+      })
+    } else if (cart) {
+      // Always show sfx.json in editor, even if empty, so users can add SFX
+      fileEntries.push({
+        name: 'sfx.json',
+        path: '/project/assets/sfx.json',
+        language: 'json',
+        content: '{}',
+        isManifest: false,
+        isSFX: true,
+      })
+    }
+
+    // Add music.json from assets/ if cart exists and has music data
+    if (cart?.music && Object.keys(cart.music).length > 0) {
+      fileEntries.push({
+        name: 'music.json',
+        path: '/project/assets/music.json',
+        language: 'json',
+        content: JSON.stringify(cart.music, null, 2),
+        isManifest: false,
+        isMusic: true,
+      })
+    } else if (cart) {
+      // Always show music.json in editor, even if empty, so users can add music
+      fileEntries.push({
+        name: 'music.json',
+        path: '/project/assets/music.json',
+        language: 'json',
+        content: '{}',
+        isManifest: false,
+        isMusic: true,
+      })
+    }
+
+    // Add sprites.json from assets/ if cart exists and has sprites data
+    if (cart?.sprites && Object.keys(cart.sprites).length > 0) {
+      fileEntries.push({
+        name: 'sprites.json',
+        path: '/project/assets/sprites.json',
+        language: 'json',
+        content: JSON.stringify(cart.sprites, null, 2),
+        isManifest: false,
+        isSprites: true,
+      })
+    } else if (cart) {
+      // Always show sprites.json in editor, even if empty, so users can add sprites
+      fileEntries.push({
+        name: 'sprites.json',
+        path: '/project/assets/sprites.json',
+        language: 'json',
+        content: '{}',
+        isManifest: false,
+        isSprites: true,
       })
     }
     
@@ -88,11 +154,17 @@ export default function CodeEditorPage() {
       // If manifest.json, always get fresh content from cart
       if (active.isManifest && cart?.manifest) {
         setValue(JSON.stringify(cart.manifest, null, 2))
+      } else if (active.isSFX && cart?.sfx) {
+        setValue(JSON.stringify(cart.sfx, null, 2))
+      } else if (active.isMusic && cart?.music) {
+        setValue(JSON.stringify(cart.music, null, 2))
+      } else if (active.isSprites && cart?.sprites) {
+        setValue(JSON.stringify(cart.sprites, null, 2))
       } else {
         setValue(active.content)
       }
     }
-  }, [active, cart?.manifest])
+  }, [active, cart?.manifest, cart?.sfx, cart?.music, cart?.sprites])
 
   const handleChange = (newValue: string) => {
     setValue(newValue)
@@ -112,6 +184,19 @@ export default function CodeEditorPage() {
         // Invalid JSON - don't update manifest yet
         console.error('Invalid JSON in manifest:', e)
       }
+    } else if (active.isSFX) {
+      // SFX will be handled by save
+    } else if (active.isMusic) {
+      // Music will be handled by save
+    } else if (active.isSprites) {
+      // Update context immediately for sprites
+      try {
+        const parsed = JSON.parse(newValue)
+        updateSprites(parsed)
+      } catch (e) {
+        // Invalid JSON - don't update yet
+        console.error('Invalid JSON in sprites:', e)
+      }
     } else {
       const assetPath = active.path.replace('/project/', '')
       updateAsset(assetPath, newValue)
@@ -126,6 +211,30 @@ export default function CodeEditorPage() {
           await saveFile({
             cartId,
             path: 'manifest.json',
+            content: newValue,
+            ownerId: user?.userId,
+          })
+        } else if (active.isSFX) {
+          // Save assets/sfx.json
+          await saveFile({
+            cartId,
+            path: 'assets/sfx.json',
+            content: newValue,
+            ownerId: user?.userId,
+          })
+        } else if (active.isMusic) {
+          // Save assets/music.json
+          await saveFile({
+            cartId,
+            path: 'assets/music.json',
+            content: newValue,
+            ownerId: user?.userId,
+          })
+        } else if (active.isSprites) {
+          // Save assets/sprites.json
+          await saveFile({
+            cartId,
+            path: 'assets/sprites.json',
             content: newValue,
             ownerId: user?.userId,
           })

@@ -38,6 +38,45 @@ export default function HomePage() {
             </Link>
           </div>
 
+          {/* Documentation Links */}
+          <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto mb-16">
+            <Link 
+              href="/docs/api-reference"
+              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="text-retro-400 text-2xl mb-2">📚</div>
+                  <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
+                    API Reference
+                  </h3>
+                  <p className="text-gray-300 text-sm">
+                    Complete documentation for all RetroForge Engine Lua functions and APIs
+                  </p>
+                </div>
+                <span className="text-retro-400 text-xl group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </Link>
+            
+            <Link 
+              href="/docs/comparison"
+              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="text-retro-400 text-2xl mb-2">⚖️</div>
+                  <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
+                    PICO-8 Comparison
+                  </h3>
+                  <p className="text-gray-300 text-sm">
+                    Feature-by-feature comparison between PICO-8 and RetroForge Engine
+                  </p>
+                </div>
+                <span className="text-retro-400 text-xl group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </Link>
+          </div>
+
           {/* Engine GitHub CTA */}
           <div className="mx-auto max-w-3xl mb-16">
             <a

@@ -16,6 +16,9 @@ interface EditorContextType {
   error: string | null
   updateManifest: (manifest: Partial<CartManifest>) => void
   updateAsset: (path: string, content: string) => void
+  updateSFX: (sfx: import('@/lib/cartUtils').SFXMap) => void
+  updateMusic: (music: import('@/lib/cartUtils').MusicMap) => void
+  updateSprites: (sprites: import('@/lib/cartUtils').SpriteMap) => void
   saveCart: () => Promise<void>
 }
 
@@ -177,7 +180,52 @@ end
     let cancelled = false
 
     async function loadCart() {
-      if (!dbCart?.cartData) {
+      let cartDataToUse = dbCart?.cartData
+
+      console.log('[EditorContext] Loading cart - isExample:', dbCart?.isExample, 'has cartData:', !!dbCart?.cartData, 'title:', dbCart?.title)
+
+      // For example carts (or carts with example titles), prefer loading from URL to get latest version
+      // This handles both actual example carts and forks that might have stale data
+      // Normalize title: lowercase, trim, replace hyphens with spaces for consistent matching
+      const normalizedTitle = dbCart?.title ? dbCart.title.toLowerCase().trim().replace(/-/g, ' ').replace(/\s+/g, ' ') : ''
+      
+      // Map normalized titles to their .rf filenames
+      const titleToFile: Record<string, string> = {
+        'hello world': 'helloworld.rf',
+        'moon lander': 'moon-lander.rf',
+        'tron light cycles': 'tron-lightcycles.rf',
+      }
+      
+      const cartFileName = normalizedTitle ? titleToFile[normalizedTitle] : null
+      
+      // Load from URL if it's an example cart or if the title matches an example cart name
+      if (dbCart?.isExample || cartFileName) {
+        const fileName = cartFileName || (normalizedTitle ? normalizedTitle.replace(/\s+/g, '-') + '.rf' : null)
+        
+        if (fileName) {
+          try {
+            console.log('[EditorContext] Attempting to load cart from URL (example or matching title):', fileName)
+            const response = await fetch(`/carts/${fileName}`)
+            if (response.ok) {
+              const arrayBuffer = await response.arrayBuffer()
+              const bytes = new Uint8Array(arrayBuffer)
+              // Convert to base64
+              let binaryString = ''
+              for (let i = 0; i < bytes.length; i++) {
+                binaryString += String.fromCharCode(bytes[i])
+              }
+              cartDataToUse = btoa(binaryString)
+              console.log('[EditorContext] Successfully loaded cart from URL:', fileName, 'size:', bytes.length)
+            } else {
+              console.warn('[EditorContext] Failed to fetch cart from URL:', fileName, 'status:', response.status, '- will use database cartData')
+            }
+          } catch (e) {
+            console.warn('[EditorContext] Exception loading cart from URL:', fileName, '- error:', e, '- will use database cartData')
+          }
+        }
+      }
+
+      if (!cartDataToUse) {
         if (dbCart) {
           setError('Cart has no data')
           setIsLoading(false)
@@ -189,7 +237,17 @@ end
       setError(null)
 
       try {
-        const unpacked = await unpackCart(dbCart.cartData)
+        const unpacked = await unpackCart(cartDataToUse)
+        
+        // Debug: Log what was unpacked
+        console.log('[EditorContext] Unpacked sfx keys:', Object.keys(unpacked.sfx || {}))
+        console.log('[EditorContext] Unpacked music keys:', Object.keys(unpacked.music || {}))
+        console.log('[EditorContext] Unpacked sprite keys:', Object.keys(unpacked.sprites || {}))
+        
+        // Ensure sfx, music, and sprites are objects, not undefined
+        if (!unpacked.sfx) unpacked.sfx = {}
+        if (!unpacked.music) unpacked.music = {}
+        if (!unpacked.sprites) unpacked.sprites = {}
         
         // If cartFiles exist, merge them into the unpacked cart (cartFiles take precedence)
         if (!cancelled && cartFiles && Array.isArray(cartFiles) && cartFiles.length > 0) {
@@ -205,10 +263,61 @@ end
               console.error('Failed to parse manifest.json from cartFiles:', e)
             }
           }
+
+          // Update sfx from cartFiles if assets/sfx.json exists (but don't override with empty objects)
+          if (filesMap.has('assets/sfx.json')) {
+            try {
+              const sfxContent = filesMap.get('assets/sfx.json')!
+              const parsed = JSON.parse(sfxContent)
+              // Only override if parsed result has content (not empty object)
+              if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                unpacked.sfx = parsed
+                console.log('[EditorContext] Updated sfx from cartFiles with keys:', Object.keys(parsed))
+              } else {
+                console.log('[EditorContext] cartFiles has empty sfx.json, keeping unpacked sfx')
+              }
+            } catch (e) {
+              console.error('Failed to parse assets/sfx.json from cartFiles:', e)
+            }
+          }
+
+          // Update music from cartFiles if assets/music.json exists (but don't override with empty objects)
+          if (filesMap.has('assets/music.json')) {
+            try {
+              const musicContent = filesMap.get('assets/music.json')!
+              const parsed = JSON.parse(musicContent)
+              // Only override if parsed result has content (not empty object)
+              if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                unpacked.music = parsed
+                console.log('[EditorContext] Updated music from cartFiles with keys:', Object.keys(parsed))
+              } else {
+                console.log('[EditorContext] cartFiles has empty music.json, keeping unpacked music')
+              }
+            } catch (e) {
+              console.error('Failed to parse assets/music.json from cartFiles:', e)
+            }
+          }
+
+          // Update sprites from cartFiles if assets/sprites.json exists (but don't override with empty objects)
+          if (filesMap.has('assets/sprites.json')) {
+            try {
+              const spritesContent = filesMap.get('assets/sprites.json')!
+              const parsed = JSON.parse(spritesContent)
+              // Only override if parsed result has content (not empty object)
+              if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                unpacked.sprites = parsed
+                console.log('[EditorContext] Updated sprites from cartFiles with keys:', Object.keys(parsed))
+              } else {
+                console.log('[EditorContext] cartFiles has empty sprites.json, keeping unpacked sprites')
+              }
+            } catch (e) {
+              console.error('Failed to parse assets/sprites.json from cartFiles:', e)
+            }
+          }
           
-          // Update assets from cartFiles (only text files)
-          for (const [path, content] of filesMap.entries()) {
-            if (path !== 'manifest.json' && path.match(/\.(lua|json|txt|md|glsl)$/i)) {
+          // Update assets from cartFiles (only text files, not manifest/sfx/music/sprites)
+          for (const [path, content] of Array.from(filesMap.entries())) {
+            if (path !== 'manifest.json' && path !== 'assets/sfx.json' && path !== 'assets/music.json' && path !== 'assets/sprites.json' && path.match(/\.(lua|json|txt|md|glsl)$/i)) {
               unpacked.assets[path] = content
             }
           }
@@ -253,6 +362,33 @@ end
     }
   }
 
+  const updateSFX = (sfx: import('@/lib/cartUtils').SFXMap) => {
+    if (cart) {
+      setCart({
+        ...cart,
+        sfx,
+      })
+    }
+  }
+
+  const updateMusic = (music: import('@/lib/cartUtils').MusicMap) => {
+    if (cart) {
+      setCart({
+        ...cart,
+        music,
+      })
+    }
+  }
+
+  const updateSprites = (sprites: import('@/lib/cartUtils').SpriteMap) => {
+    if (cart) {
+      setCart({
+        ...cart,
+        sprites,
+      })
+    }
+  }
+
   const saveCart = async () => {
     // TODO: Implement save to database
     console.log('Save cart not yet implemented')
@@ -267,6 +403,9 @@ end
         error,
         updateManifest,
         updateAsset,
+        updateSFX,
+        updateMusic,
+        updateSprites,
         saveCart,
       }}
     >

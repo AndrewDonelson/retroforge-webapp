@@ -1,4 +1,16 @@
+// Check if ad is populated (not just a placeholder)
+function isAdPopulated(): boolean {
+  // For now, return false to hide placeholder ads
+  // When ad provider is integrated, check if actual ad content exists
+  return false
+}
+
 export default function AdCard() {
+  // Don't render if ad is not populated
+  if (!isAdPopulated()) {
+    return null
+  }
+  
   return (
     <article className="card-retro overflow-hidden bg-gray-850 border-gray-700">
       <div className="relative w-full aspect-square bg-gray-900 flex items-center justify-center">

@@ -23,6 +23,16 @@ const EXAMPLE_CARTS = [
     cartFile: '/carts/moon-lander.rf',
     isExample: true,
   },
+  {
+    id: 'tron-lightcycles',
+    title: 'Tron Light Cycles',
+    author: 'RetroForge',
+    description: 'Classic Tron-style light cycles game with increasing difficulty.',
+    genre: 'Action',
+    imageUrl: '/assets/placeholders/cart03.png',
+    cartFile: '/carts/tron-lightcycles.rf',
+    isExample: true,
+  },
 ]
 
 /**

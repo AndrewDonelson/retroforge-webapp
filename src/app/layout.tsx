@@ -64,16 +64,12 @@ export default function RootLayout({
               <SiteHeader />
 
               {/* Top inline banner ad - centered below header */}
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-8">
-                <AdBanner placement="top" />
-              </div>
+              <AdBanner placement="top" />
 
               {children}
 
               {/* Bottom banner ad - centered above shared footer */}
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-8">
-                <AdBanner placement="bottom" />
-              </div>
+              <AdBanner placement="bottom" />
 
               {/* Shared site footer */}
               <SiteFooter />

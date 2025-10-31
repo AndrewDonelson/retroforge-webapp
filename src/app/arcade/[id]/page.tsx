@@ -17,6 +17,8 @@ declare global {
     rf_run_frame?: () => unknown;
     rf_get_pixels?: (dst: Uint8Array) => unknown;
     rf_set_btn?: (idx: number, down: boolean) => unknown;
+    rf_screenshot?: () => unknown;
+    rf_screenshot_callback?: (pixels: Uint8Array, width: number, height: number) => void;
   }
 }
 
@@ -29,6 +31,9 @@ export default function ArcadeDetailPage() {
   const [scale, setScale] = useState(1);
   const rafRef = useRef<number | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
+  const thrustOscRef = useRef<OscillatorNode | null>(null);
+  const musicRef = useRef<{ notes: string[]; bpm: number; gain: number; startTime: number; noteIndex: number } | null>(null);
+  const musicTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -86,9 +91,115 @@ export default function ArcadeDetailPage() {
         src.connect(g).connect(ctx.destination);
         src.start();
       };
+      (window as any).rf_audio_thrust = (on: boolean) => {
+        if (!ctx) return;
+        if (thrustOscRef.current) {
+          try { thrustOscRef.current.stop(); } catch {}
+          thrustOscRef.current = null;
+        }
+        if (on) {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "sawtooth";
+          osc.frequency.value = 110;
+          g.gain.value = 0.2;
+          osc.connect(g).connect(ctx.destination);
+          osc.start(ctx.currentTime);
+          thrustOscRef.current = osc;
+        }
+      };
+      (window as any).rf_audio_playNotes = (tokens: string[], bpm: number, gain: number) => {
+        if (!ctx) return;
+        // Stop any existing music
+        if (musicTimeoutRef.current) {
+          clearTimeout(musicTimeoutRef.current);
+          musicTimeoutRef.current = null;
+        }
+        const noteMap: Record<string, number> = {
+          "C": 261.63, "C#": 277.18, "D": 293.66, "D#": 311.13,
+          "E": 329.63, "F": 349.23, "F#": 369.99,
+          "G": 392.00, "G#": 415.30, "A": 440.00, "A#": 466.16, "B": 493.88
+        };
+        let noteIndex = 0;
+        const startTime = ctx.currentTime;
+        const beatDuration = 60 / bpm;
+        
+        const playNext = () => {
+          if (noteIndex >= tokens.length) return;
+          const token = tokens[noteIndex];
+          noteIndex++;
+          
+          if (token.startsWith("R")) {
+            // Rest - just wait
+            const restBeats = parseInt(token.substring(1)) || 1;
+            musicTimeoutRef.current = window.setTimeout(playNext, restBeats * beatDuration * 1000);
+          } else {
+            // Parse note: format like "4C1" = octave 4, note C, duration 1 beat
+            let octave = 4;
+            let note = "";
+            let dur = 1;
+            let i = 0;
+            if (token[i] >= '0' && token[i] <= '9') {
+              octave = parseInt(token[i]);
+              i++;
+            }
+            while (i < token.length && (token[i] === '#' || (token[i] >= 'A' && token[i] <= 'G'))) {
+              note += token[i];
+              i++;
+            }
+            if (i < token.length && token[i] >= '0' && token[i] <= '9') {
+              dur = parseInt(token.substring(i));
+            }
+            
+            const freq = noteMap[note] ? noteMap[note] * Math.pow(2, octave - 4) : 440;
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = freq;
+            g.gain.value = gain;
+            osc.connect(g).connect(ctx.destination);
+            const now = ctx.currentTime;
+            osc.start(now);
+            osc.stop(now + dur * beatDuration);
+            
+            musicTimeoutRef.current = window.setTimeout(playNext, dur * beatDuration * 1000);
+          }
+        };
+        
+        playNext();
+      };
       (window as any).rf_audio_stopAll = () => {
-        try { if (ctx.state !== "closed") ctx.close(); } catch {}
-        audioRef.current = null;
+        if (thrustOscRef.current) {
+          try { thrustOscRef.current.stop(); } catch {}
+          thrustOscRef.current = null;
+        }
+        if (musicTimeoutRef.current) {
+          clearTimeout(musicTimeoutRef.current);
+          musicTimeoutRef.current = null;
+        }
+        // Don't close the audio context, just stop sounds
+      };
+      (window as any).rf_screenshot_callback = (pixels: Uint8Array, width: number, height: number) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        const imgData = ctx.createImageData(width, height);
+        for (let i = 0; i < pixels.length; i++) {
+          imgData.data[i] = pixels[i];
+        }
+        ctx.putImageData(imgData, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `screenshot-${Date.now()}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        });
       };
     }
   }
@@ -96,6 +207,12 @@ export default function ArcadeDetailPage() {
   useEffect(() => {
     function onKey(e: KeyboardEvent, down: boolean) {
       if (!window.rf_set_btn) return;
+      // Handle PRINT SCREEN key
+      if (e.code === "PrintScreen" && down && window.rf_screenshot) {
+        e.preventDefault();
+        window.rf_screenshot();
+        return;
+      }
       const map: Record<string, number> = { ArrowLeft:0, ArrowRight:1, ArrowUp:2, ArrowDown:3, KeyZ:4, KeyX:5, Enter:5 };
       const idx = map[e.code];
       if (idx !== undefined) { e.preventDefault(); window.rf_set_btn!(idx, down); }

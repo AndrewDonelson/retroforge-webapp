@@ -1,13 +1,25 @@
 "use client"
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PRESET_50, type Palette } from '@/data/palettes'
+import { useEditor } from '@/contexts/EditorContext'
 
 // 50-color presets (from design doc and generative sets)
 const PRESETS: Palette[] = PRESET_50
 
 export default function PalettePage() {
+  const { cart, isLoading, updateManifest } = useEditor()
   const [active, setActive] = useState<Palette>(PRESETS[0])
+
+  // Try to match cart's palette if specified
+  useEffect(() => {
+    if (cart?.manifest?.palette) {
+      const matched = PRESETS.find(p => p.name.toLowerCase() === cart.manifest.palette?.toLowerCase())
+      if (matched) {
+        setActive(matched)
+      }
+    }
+  }, [cart])
   const [custom, setCustom] = useState<string>('')
   const parsedCustom = useMemo(() =>
     custom
@@ -18,9 +30,23 @@ export default function PalettePage() {
     [custom]
   )
 
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-xl font-pixel text-white">Palette</h1>
+        <p className="text-gray-400">Loading cart...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-pixel text-white">Palette</h1>
+      {cart && (
+        <p className="text-xs text-gray-500">
+          Current: {cart.manifest.palette || 'Not set'}
+        </p>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="card-retro p-3">
@@ -31,14 +57,29 @@ export default function PalettePage() {
               value={active.name}
               onChange={(e) => {
                 const p = PRESETS.find((x) => x.name === e.target.value)
-                if (p) setActive(p)
+                if (p) {
+                  setActive(p)
+                  if (cart) {
+                    updateManifest({ palette: p.name })
+                  }
+                }
               }}
             >
               {PRESETS.map((p) => (
                 <option key={p.name} value={p.name}>{p.name}</option>
               ))}
             </select>
-            <button className="btn-retro" onClick={() => setActive(PRESETS[0])}>Reset to RetroForge 50</button>
+            <button
+              className="btn-retro"
+              onClick={() => {
+                setActive(PRESETS[0])
+                if (cart) {
+                  updateManifest({ palette: PRESETS[0].name })
+                }
+              }}
+            >
+              Reset to RetroForge 50
+            </button>
           </div>
           <div className="mt-4">
             <div className="text-xs text-gray-400 mb-2">{active.colors.length} colors</div>

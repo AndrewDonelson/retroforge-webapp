@@ -2,6 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
+import { useAuth } from '@/contexts/AuthContext';
+import { ForkButton } from '@/components/carts/ForkButton';
 
 type CartDef = { id: string; name: string; file: string; desc: string };
 const CARTS: CartDef[] = [
@@ -24,7 +29,30 @@ declare global {
 
 export default function ArcadeDetailPage() {
   const params = useParams<{ id: string }>();
-  const cart = useMemo(() => CARTS.find(c => c.id === params.id) || CARTS[0], [params.id]);
+  const { isAuthenticated, user } = useAuth();
+  
+  // Try to get cart from database first, fallback to hardcoded list
+  const cartIdParam = params.id as string;
+  const isConvexId = cartIdParam?.startsWith('j'); // Convex IDs start with 'j'
+  
+  const dbCart = useQuery(
+    api.cartActions.getById,
+    isConvexId ? { cartId: cartIdParam as Id<'carts'> } : 'skip'
+  );
+  
+  // Check if user has already forked this cart
+  const existingFork = useQuery(
+    api.cartActions.getExistingFork,
+    isAuthenticated && user && isConvexId && dbCart
+      ? { originalCartId: cartIdParam as Id<'carts'>, ownerId: user.userId }
+      : 'skip'
+  );
+  
+  const fallbackCart = useMemo(() => CARTS.find(c => c.id === params.id) || CARTS[0], [params.id]);
+  const cart = dbCart 
+    ? { id: dbCart._id, name: dbCart.title, file: dbCart.cartData ? undefined : `/carts/${params.id}.rf`, desc: dbCart.description }
+    : fallbackCart;
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
   const [running, setRunning] = useState(false);
@@ -48,6 +76,8 @@ export default function ArcadeDetailPage() {
       const resp = await fetch("/engine/retroforge.wasm");
       const { instance } = await WebAssembly.instantiateStreaming(resp, go.importObject);
       go.run(instance);
+      // Wait a moment for WASM exports to be set on window
+      await new Promise(resolve => setTimeout(resolve, 50));
       if (!cancelled) setReady(true);
     }
     loadWasm();
@@ -205,24 +235,44 @@ export default function ArcadeDetailPage() {
   }
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent, down: boolean) {
-      if (!window.rf_set_btn) return;
-      // Handle PRINT SCREEN key
-      if (e.code === "PrintScreen" && down && window.rf_screenshot) {
-        e.preventDefault();
-        window.rf_screenshot();
+    if (!ready) return; // Wait for WASM to load
+    
+    // Wait a bit to ensure WASM functions are actually on window
+    const setupInput = () => {
+      if (!window.rf_set_btn) {
+        setTimeout(setupInput, 100);
         return;
       }
-      const map: Record<string, number> = { ArrowLeft:0, ArrowRight:1, ArrowUp:2, ArrowDown:3, KeyZ:4, KeyX:5, Enter:5 };
-      const idx = map[e.code];
-      if (idx !== undefined) { e.preventDefault(); window.rf_set_btn!(idx, down); }
-    }
-    const kd = (e: KeyboardEvent) => onKey(e, true);
-    const ku = (e: KeyboardEvent) => onKey(e, false);
-    window.addEventListener("keydown", kd);
-    window.addEventListener("keyup", ku);
-    return () => { window.removeEventListener("keydown", kd); window.removeEventListener("keyup", ku); };
-  }, []);
+      
+      function onKey(e: KeyboardEvent, down: boolean) {
+        if (!window.rf_set_btn) return;
+        // Handle PRINT SCREEN key
+        if (e.code === "PrintScreen" && down && window.rf_screenshot) {
+          e.preventDefault();
+          window.rf_screenshot();
+          return;
+        }
+        const map: Record<string, number> = { ArrowLeft:0, ArrowRight:1, ArrowUp:2, ArrowDown:3, KeyZ:4, KeyX:5, Enter:5 };
+        const idx = map[e.code];
+        if (idx !== undefined) { 
+          e.preventDefault(); 
+          window.rf_set_btn!(idx, down); 
+        }
+      }
+      const kd = (e: KeyboardEvent) => onKey(e, true);
+      const ku = (e: KeyboardEvent) => onKey(e, false);
+      window.addEventListener("keydown", kd, true);
+      window.addEventListener("keyup", ku, true);
+      
+      return () => { 
+        window.removeEventListener("keydown", kd, true); 
+        window.removeEventListener("keyup", ku, true); 
+      };
+    };
+    
+    const cleanup = setupInput();
+    return cleanup;
+  }, [ready]);
 
   async function start() {
     if (!ready || running) return;
@@ -232,15 +282,42 @@ export default function ArcadeDetailPage() {
       try { await audioRef.current.resume(); } catch {}
     }
     window.rf_init!(60);
-    const res = await fetch(cart.file);
-    const buf = new Uint8Array(await res.arrayBuffer());
+    
+    // Load cart data - from database or file
+    let buf: Uint8Array;
+    if (dbCart?.cartData) {
+      // Load from base64 cart data in database
+      const binaryString = atob(dbCart.cartData);
+      buf = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        buf[i] = binaryString.charCodeAt(i);
+      }
+    } else if (cart.file) {
+      // Load from file (hardcoded carts)
+      const res = await fetch(cart.file);
+      buf = new Uint8Array(await res.arrayBuffer());
+    } else {
+      console.error('No cart data available');
+      return;
+    }
+    
     window.rf_load_cart!(buf);
     const cvs = canvasRef.current!; const ctx = cvs.getContext("2d")!;
     const width = 480, height = 270; cvs.width = width; cvs.height = height;
     const s = Math.max(1, scale|0);
     cvs.style.width = `${width*s}px`; cvs.style.height = `${height*s}px`;
     const img = ctx.createImageData(width, height);
-    const loop = () => { if (!window.rf_run_frame || !window.rf_get_pixels) return; window.rf_run_frame!(); window.rf_get_pixels!(img.data); ctx.putImageData(img, 0, 0); rafRef.current = requestAnimationFrame(loop); };
+    const loop = () => { 
+      if (!window.rf_run_frame || !window.rf_get_pixels) return; 
+      window.rf_run_frame!(); 
+      // Convert ImageData.data (Uint8ClampedArray) to Uint8Array for WASM
+      const buf = new Uint8Array(img.data.buffer);
+      window.rf_get_pixels!(buf);
+      // Copy back to ImageData
+      img.data.set(buf);
+      ctx.putImageData(img, 0, 0); 
+      rafRef.current = requestAnimationFrame(loop); 
+    };
     setRunning(true); rafRef.current = requestAnimationFrame(loop);
   }
 
@@ -260,6 +337,22 @@ export default function ArcadeDetailPage() {
           <p className="text-gray-300 text-sm mt-1">{cart.desc}</p>
         </div>
         <div className="flex items-center gap-3">
+          {isAuthenticated && existingFork ? (
+            <a
+              href={`/editor?cartId=${existingFork._id}`}
+              className="px-4 py-2 bg-retro-600 hover:bg-retro-500 rounded"
+            >
+              Go to My Fork
+            </a>
+          ) : (
+            isAuthenticated && (
+              <ForkButton 
+                cartId={dbCart?._id}
+                originalCartName={cart.name}
+                cartFile={cart.file}
+              />
+            )
+          )}
           <select
             value={scale}
             onChange={(e)=>setScale(parseInt(e.target.value)||1)}

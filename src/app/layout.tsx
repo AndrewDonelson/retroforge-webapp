@@ -1,9 +1,11 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import AdBanner from '@/components/ads/AdBanner'
 import SiteHeader from '@/components/layout/SiteHeader'
 import SiteFooter from '@/components/layout/SiteFooter'
+import { ConvexProvider } from '@/providers/ConvexProvider'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -39,11 +41,12 @@ export const metadata: Metadata = {
     description: 'A modern fantasy console for creating retro-style games with modern development tools.',
     creator: '@AndrewDonelson',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({
@@ -54,25 +57,29 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${inter.className} h-full bg-gray-900 text-white`}>
-        <div id="root" className="h-full">
-          {/* Shared site header */}
-          <SiteHeader />
+        <ConvexProvider>
+          <AuthProvider>
+            <div id="root" className="h-full">
+              {/* Shared site header */}
+              <SiteHeader />
 
-          {/* Top inline banner ad - centered below header */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-8">
-            <AdBanner placement="top" />
-          </div>
+              {/* Top inline banner ad - centered below header */}
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-8">
+                <AdBanner placement="top" />
+              </div>
 
-          {children}
+              {children}
 
-          {/* Bottom banner ad - centered above shared footer */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-8">
-            <AdBanner placement="bottom" />
-          </div>
+              {/* Bottom banner ad - centered above shared footer */}
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 mb-8">
+                <AdBanner placement="bottom" />
+              </div>
 
-          {/* Shared site footer */}
-          <SiteFooter />
-        </div>
+              {/* Shared site footer */}
+              <SiteFooter />
+            </div>
+          </AuthProvider>
+        </ConvexProvider>
       </body>
     </html>
   )

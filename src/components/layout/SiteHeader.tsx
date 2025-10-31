@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import Logo from '@/components/common/Logo'
+import { LoginButton } from '@/components/auth/LoginButton'
 
 type LabelMode = 'icons' | 'icons+text'
 
@@ -118,6 +119,9 @@ export default function SiteHeader() {
             >
               {labelMode === 'icons' ? 'Aa' : '🔤'}
             </button>
+            <div className="ml-2 border-l border-gray-700 pl-4">
+              <LoginButton />
+            </div>
           </nav>
         </div>
       </div>

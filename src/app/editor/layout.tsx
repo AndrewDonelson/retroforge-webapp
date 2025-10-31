@@ -1,17 +1,19 @@
 "use client"
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { useEffect, useState, Suspense } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { EditorProvider } from '@/contexts/EditorContext'
 
 type LabelMode = 'icons' | 'icons+text'
 
-function NavItem({ href, label, icon }: { href: string; label: string; icon: React.ReactNode }) {
+function NavItem({ href, label, icon, cartId }: { href: string; label: string; icon: React.ReactNode; cartId?: string | null }) {
   const pathname = usePathname()
   const active = pathname?.startsWith(href)
+  const finalHref = cartId ? `${href}?cartId=${cartId}` : href
   return (
     <Link
-      href={href}
+      href={finalHref}
       className={`nav-item inline-flex items-center gap-2 px-3 py-2 rounded border ${
         active ? 'border-retro-500 bg-gray-800' : 'border-transparent hover:border-gray-600 hover:bg-gray-800/60'
       }`}
@@ -22,8 +24,10 @@ function NavItem({ href, label, icon }: { href: string; label: string; icon: Rea
   )
 }
 
-export default function EditorLayout({ children }: { children: React.ReactNode }) {
+function EditorLayoutInner({ children }: { children: React.ReactNode }) {
   const [labelMode, setLabelMode] = useState<LabelMode>('icons+text')
+  const searchParams = useSearchParams()
+  const cartId = searchParams?.get('cartId')
 
   useEffect(() => {
     const read = () => {
@@ -50,21 +54,22 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
   }, [labelMode])
 
   return (
-    <div id="editor-shell" className="min-h-[calc(100vh-200px)] grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
+    <EditorProvider>
+      <div id="editor-shell" className="min-h-[calc(100vh-200px)] grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4">
       {/* Sidebar (top docked on mobile) */}
       <aside className="card-retro p-3 h-max lg:sticky lg:top-4">
         <div className="flex items-center justify-between mb-2">
           <div className="text-sm text-gray-300">Editor</div>
         </div>
         <nav className="flex lg:flex-col flex-wrap gap-2">
-          <NavItem href="/editor/properties" label="Properties" icon={<span>⚙️</span>} />
-          <NavItem href="/editor/code" label="Code" icon={<span>💻</span>} />
-          <NavItem href="/editor/palette" label="Palette" icon={<span>🎨</span>} />
-          <NavItem href="/editor/map" label="Map" icon={<span>🗺️</span>} />
-          <NavItem href="/editor/tile" label="Tiles" icon={<span>🧩</span>} />
-          <NavItem href="/editor/sprite" label="Sprite" icon={<span>👾</span>} />
-          <NavItem href="/editor/sound" label="Sound" icon={<span>🔊</span>} />
-          <NavItem href="/editor/music" label="Music" icon={<span>🎵</span>} />
+          <NavItem href="/editor/properties" label="Properties" icon={<span>⚙️</span>} cartId={cartId} />
+          <NavItem href="/editor/code" label="Code" icon={<span>💻</span>} cartId={cartId} />
+          <NavItem href="/editor/palette" label="Palette" icon={<span>🎨</span>} cartId={cartId} />
+          <NavItem href="/editor/map" label="Map" icon={<span>🗺️</span>} cartId={cartId} />
+          <NavItem href="/editor/tile" label="Tiles" icon={<span>🧩</span>} cartId={cartId} />
+          <NavItem href="/editor/sprite" label="Sprite" icon={<span>👾</span>} cartId={cartId} />
+          <NavItem href="/editor/sound" label="Sound" icon={<span>🔊</span>} cartId={cartId} />
+          <NavItem href="/editor/music" label="Music" icon={<span>🎵</span>} cartId={cartId} />
         </nav>
       </aside>
 
@@ -84,7 +89,16 @@ export default function EditorLayout({ children }: { children: React.ReactNode }
           #editor-shell.labels-off nav { row-gap: 0.25rem; }
         }
       `}</style>
-    </div>
+      </div>
+    </EditorProvider>
+  )
+}
+
+export default function EditorLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="p-4 text-gray-400">Loading editor...</div>}>
+      <EditorLayoutInner>{children}</EditorLayoutInner>
+    </Suspense>
   )
 }
 

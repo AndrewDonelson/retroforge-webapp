@@ -27,6 +27,9 @@
       "@/*": [
         "./src/*"
       ],
+      "@/convex/*": [
+        "./convex/*"
+      ],
       "@/components/*": [
         "./src/components/*"
       ],

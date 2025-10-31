@@ -42,6 +42,8 @@ export default function ArcadePage() {
       const resp = await fetch("/engine/retroforge.wasm");
       const { instance } = await WebAssembly.instantiateStreaming(resp, go.importObject);
       go.run(instance);
+      // Wait a moment for WASM exports to be set on window
+      await new Promise(resolve => setTimeout(resolve, 50));
       if (!cancelled) setReady(true);
     }
     loadWasm();
@@ -99,32 +101,46 @@ export default function ArcadePage() {
   }
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent, down: boolean) {
-      if (!window.rf_set_btn) return;
-      const map: Record<string, number> = {
-        ArrowLeft: 0,
-        ArrowRight: 1,
-        ArrowUp: 2,
-        ArrowDown: 3,
-        KeyZ: 4,
-        KeyX: 5,
-        Enter: 5,
-      };
-      const idx = map[e.code];
-      if (idx !== undefined) {
-        e.preventDefault();
-        window.rf_set_btn!(idx, down);
+    if (!ready) return; // Wait for WASM to load
+    
+    // Wait a bit to ensure WASM functions are actually on window
+    const setupInput = () => {
+      if (!window.rf_set_btn) {
+        setTimeout(setupInput, 100);
+        return;
       }
-    }
-    const kd = (e: KeyboardEvent) => onKey(e, true);
-    const ku = (e: KeyboardEvent) => onKey(e, false);
-    window.addEventListener("keydown", kd);
-    window.addEventListener("keyup", ku);
-    return () => {
-      window.removeEventListener("keydown", kd);
-      window.removeEventListener("keyup", ku);
+      
+      function onKey(e: KeyboardEvent, down: boolean) {
+        if (!window.rf_set_btn) return;
+        const map: Record<string, number> = {
+          ArrowLeft: 0,
+          ArrowRight: 1,
+          ArrowUp: 2,
+          ArrowDown: 3,
+          KeyZ: 4,
+          KeyX: 5,
+          Enter: 5,
+        };
+        const idx = map[e.code];
+        if (idx !== undefined) {
+          e.preventDefault();
+          window.rf_set_btn!(idx, down);
+        }
+      }
+      const kd = (e: KeyboardEvent) => onKey(e, true);
+      const ku = (e: KeyboardEvent) => onKey(e, false);
+      window.addEventListener("keydown", kd, true);
+      window.addEventListener("keyup", ku, true);
+      
+      return () => {
+        window.removeEventListener("keydown", kd, true);
+        window.removeEventListener("keyup", ku, true);
+      };
     };
-  }, []);
+    
+    const cleanup = setupInput();
+    return cleanup;
+  }, [ready]);
 
   async function start() {
     if (!ready || running) return;
@@ -149,7 +165,11 @@ export default function ArcadePage() {
     const loop = () => {
       if (!window.rf_run_frame || !window.rf_get_pixels) return;
       window.rf_run_frame!();
-      window.rf_get_pixels!(img.data);
+      // Convert ImageData.data (Uint8ClampedArray) to Uint8Array for WASM
+      const buf = new Uint8Array(img.data.buffer);
+      window.rf_get_pixels!(buf);
+      // Copy back to ImageData
+      img.data.set(buf);
       ctx.putImageData(img, 0, 0);
       rafRef.current = requestAnimationFrame(loop);
     };

@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
+import { useEditor } from '@/contexts/EditorContext'
 
 const AceEditor = dynamic(async () => {
   const mod = await import('react-ace')
@@ -14,25 +15,80 @@ const AceEditor = dynamic(async () => {
 
 type FileEntry = { name: string; path: string; language: 'lua' | 'json' | 'text'; content: string }
 
-const SAMPLE_FILES: FileEntry[] = [
-  { name: 'main.rfs', path: '/project/main.rfs', language: 'lua', content: `-- RetroForge main cartridge\nfunction _init()\n  print('Hello RetroForge!')\nend\n\nfunction _update()\n  -- game loop\nend\n` },
-  { name: 'tiles.json', path: '/project/tiles.json', language: 'json', content: `{"tileSize":16,"tiles":[{"id":0,"name":"empty"}]}` },
-  { name: 'map.json', path: '/project/map.json', language: 'json', content: `{"width":30,"height":17,"layers":[[0,0,0]]}` },
-  { name: 'audio.json', path: '/project/audio.json', language: 'json', content: `{"sounds":[{"id":"jump","wave":"square"}]}` },
-  { name: 'config.json', path: '/project/config.json', language: 'json', content: `{"name":"My Game","version":"0.1.0"}` },
-]
+function getLanguageFromPath(path: string): 'lua' | 'json' | 'text' {
+  if (path.endsWith('.lua')) return 'lua'
+  if (path.endsWith('.json')) return 'json'
+  return 'text'
+}
 
 export default function CodeEditorPage() {
-  const [files] = useState<FileEntry[]>(SAMPLE_FILES)
-  const [activePath, setActivePath] = useState<string>(files[0].path)
-  const active = useMemo(() => files.find((f) => f.path === activePath)!, [files, activePath])
-  const [value, setValue] = useState<string>(active.content)
+  const { cart, isLoading, updateAsset } = useEditor()
+  
+  // Convert cart assets to file entries
+  const files = useMemo<FileEntry[]>(() => {
+    if (!cart?.assets) return []
+    
+    return Object.entries(cart.assets)
+      .filter(([path]) => {
+        // Only show text files in code editor
+        return path.match(/\.(lua|json|txt|md|glsl)$/i)
+      })
+      .map(([path, content]) => ({
+        name: path.split('/').pop() || path,
+        path: `/project/${path}`,
+        language: getLanguageFromPath(path),
+        content: typeof content === 'string' && !content.startsWith('data:') ? content : '',
+      }))
+      .sort((a, b) => {
+        // Put main.lua first
+        if (a.name === 'main.lua') return -1
+        if (b.name === 'main.lua') return 1
+        return a.name.localeCompare(b.name)
+      })
+  }, [cart])
+
+  const [activePath, setActivePath] = useState<string>('')
+  const active = useMemo(() => {
+    if (!activePath && files.length > 0) {
+      setActivePath(files[0].path)
+    }
+    return files.find((f) => f.path === activePath) || files[0]
+  }, [files, activePath])
+  
+  const [value, setValue] = useState<string>(active?.content || '')
 
   useEffect(() => {
-    setValue(active.content)
+    if (active) {
+      setValue(active.content)
+    }
   }, [active])
 
-  const aceMode = active.language === 'lua' ? 'lua' : active.language === 'json' ? 'json' : 'text'
+  const handleChange = (newValue: string) => {
+    setValue(newValue)
+    if (active) {
+      const assetPath = active.path.replace('/project/', '')
+      updateAsset(assetPath, newValue)
+    }
+  }
+
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex flex-col">
+        <p className="text-gray-400">Loading cart...</p>
+      </div>
+    )
+  }
+
+  if (!cart || files.length === 0) {
+    return (
+      <div className="h-full flex flex-col">
+        <p className="text-gray-400">No code files found in cart.</p>
+      </div>
+    )
+  }
+
+  const aceMode = active?.language === 'lua' ? 'lua' : active?.language === 'json' ? 'json' : 'text'
 
   return (
     <div className="h-full flex flex-col">
@@ -55,7 +111,7 @@ export default function CodeEditorPage() {
             theme="cobalt"
             name="rf-ace"
             value={value}
-            onChange={setValue}
+            onChange={handleChange}
             width="100%"
             height="100%"
             setOptions={{

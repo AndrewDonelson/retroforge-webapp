@@ -25,7 +25,7 @@ export default function HomePage() {
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link 
-              href="/editor/code" 
+              href="/editor" 
               className="btn-retro text-lg px-8 py-4 animate-pixel-glow"
             >
               Start Creating

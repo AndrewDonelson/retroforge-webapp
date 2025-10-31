@@ -61,6 +61,12 @@ function EditorProviderInner({ children }: { children: ReactNode }) {
     api.cartActions.getById,
     cartId ? { cartId } : 'skip'
   )
+  
+  // Load cart files from cartFiles table
+  const cartFiles = useQuery(
+    api.cartFiles.getCartFiles,
+    cartId && user ? { cartId, userId: user.userId } : cartId ? { cartId } : 'skip'
+  )
 
   // Show create modal if no cartId and user is authenticated
   useEffect(() => {
@@ -184,6 +190,30 @@ end
 
       try {
         const unpacked = await unpackCart(dbCart.cartData)
+        
+        // If cartFiles exist, merge them into the unpacked cart (cartFiles take precedence)
+        if (!cancelled && cartFiles && Array.isArray(cartFiles) && cartFiles.length > 0) {
+          const filesMap = new Map(cartFiles.map(f => [f.path, f.content]))
+          
+          // Update manifest from cartFiles if manifest.json exists
+          if (filesMap.has('manifest.json')) {
+            try {
+              const manifestContent = filesMap.get('manifest.json')!
+              const parsedManifest = JSON.parse(manifestContent)
+              unpacked.manifest = { ...unpacked.manifest, ...parsedManifest }
+            } catch (e) {
+              console.error('Failed to parse manifest.json from cartFiles:', e)
+            }
+          }
+          
+          // Update assets from cartFiles (only text files)
+          for (const [path, content] of filesMap.entries()) {
+            if (path !== 'manifest.json' && path.match(/\.(lua|json|txt|md|glsl)$/i)) {
+              unpacked.assets[path] = content
+            }
+          }
+        }
+        
         if (!cancelled) {
           setCart(unpacked)
           setUnpackedCartId(cartId) // Mark this cartId as unpacked
@@ -203,7 +233,7 @@ end
     return () => {
       cancelled = true
     }
-  }, [dbCart, cartId, unpackedCartId, cart])
+  }, [dbCart, cartId, unpackedCartId, cart, cartFiles])
 
   const updateManifest = (updates: Partial<CartManifest>) => {
     if (cart) {

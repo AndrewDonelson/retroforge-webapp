@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as cartActions from "../cartActions.js";
+import type * as cartFiles from "../cartFiles.js";
 import type * as carts from "../carts.js";
 import type * as exampleCarts from "../exampleCarts.js";
 
@@ -30,6 +31,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   cartActions: typeof cartActions;
+  cartFiles: typeof cartFiles;
   carts: typeof carts;
   exampleCarts: typeof exampleCarts;
 }>;

@@ -35,6 +35,16 @@ export default defineSchema({
   })
     .index('by_username', ['username'])
     .index('by_public_key', ['publicKey']),
+  cartFiles: defineTable({
+    cartId: v.id('carts'),
+    ownerId: v.optional(v.id('users')), // Owner of the cart (copied from cart for performance)
+    path: v.string(), // File path within cart (e.g., "main.lua", "manifest.json", "assets/script.lua")
+    content: v.string(), // File content (as text for .lua, .json, etc.)
+    updatedAt: v.number(),
+  })
+    .index('by_cart', ['cartId'])
+    .index('by_cart_path', ['cartId', 'path'])
+    .index('by_owner', ['ownerId']),
 })
 
 

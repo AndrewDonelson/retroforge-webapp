@@ -2,11 +2,38 @@
 
 import { useEditor } from '@/contexts/EditorContext'
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
+import { useMutation } from 'convex/react'
+import { api } from '@/convex/_generated/api'
+import { useAuth } from '@/contexts/AuthContext'
+import { PRESET_50 } from '@/data/palettes'
 
 function PropertiesPageInner() {
   const { cart, isLoading, updateManifest, error, cartId } = useEditor()
+  const { user } = useAuth()
   const searchParams = useSearchParams()
+  const saveFile = useMutation(api.cartFiles.saveCartFile)
+  
+  // Watch for manifest changes and save to cartFiles
+  useEffect(() => {
+    if (!cart?.manifest || !cartId || !user) return
+    
+    // Debounce: Save manifest.json after changes
+    const timeoutId = setTimeout(async () => {
+      try {
+        await saveFile({
+          cartId,
+          path: 'manifest.json',
+          content: JSON.stringify(cart.manifest, null, 2),
+          ownerId: user?.userId,
+        })
+      } catch (error) {
+        console.error('Failed to save manifest.json:', error)
+      }
+    }, 500) // Debounce 500ms
+    
+    return () => clearTimeout(timeoutId)
+  }, [cart?.manifest, cartId, user, saveFile])
   
   // Debug logging
   const urlCartId = searchParams?.get('cartId')
@@ -88,6 +115,33 @@ function PropertiesPageInner() {
           <div className="space-y-2">
             <div className="text-xs text-gray-400">Resolution: 480×270 (fixed)</div>
             <div className="text-xs text-gray-400">Target FPS: 60</div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Palette</label>
+              <select
+                className="input-retro w-full text-sm"
+                value={manifest.palette || ''}
+                onChange={(e) => updateManifest({ palette: e.target.value || undefined })}
+              >
+                <option value="">Default</option>
+                {PRESET_50.map(p => (
+                  <option key={p.name} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Scale</label>
+              <input
+                type="number"
+                min="1"
+                max="10"
+                className="input-retro w-full text-sm"
+                value={manifest.scale ?? 1}
+                onChange={(e) => {
+                  const scaleValue = parseInt(e.target.value)
+                  updateManifest({ scale: isNaN(scaleValue) ? undefined : scaleValue })
+                }}
+              />
+            </div>
           </div>
         </div>
         <div className="card-retro p-3 md:col-span-2">

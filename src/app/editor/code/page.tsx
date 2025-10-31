@@ -3,6 +3,9 @@
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useState } from 'react'
 import { useEditor } from '@/contexts/EditorContext'
+import { useMutation } from 'convex/react'
+import { api } from '@/convex/_generated/api'
+import { useAuth } from '@/contexts/AuthContext'
 
 const AceEditor = dynamic(async () => {
   const mod = await import('react-ace')
@@ -13,7 +16,7 @@ const AceEditor = dynamic(async () => {
   return mod
 }, { ssr: false })
 
-type FileEntry = { name: string; path: string; language: 'lua' | 'json' | 'text'; content: string }
+type FileEntry = { name: string; path: string; language: 'lua' | 'json' | 'text'; content: string; isManifest: boolean }
 
 function getLanguageFromPath(path: string): 'lua' | 'json' | 'text' {
   if (path.endsWith('.lua')) return 'lua'
@@ -22,29 +25,52 @@ function getLanguageFromPath(path: string): 'lua' | 'json' | 'text' {
 }
 
 export default function CodeEditorPage() {
-  const { cart, isLoading, updateAsset } = useEditor()
+  const { cart, isLoading, updateAsset, updateManifest, cartId } = useEditor()
+  const { user } = useAuth()
+  const saveFile = useMutation(api.cartFiles.saveCartFile)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveTimer, setSaveTimer] = useState<NodeJS.Timeout | null>(null)
   
-  // Convert cart assets to file entries
+  // Convert cart assets to file entries, including manifest.json
   const files = useMemo<FileEntry[]>(() => {
-    if (!cart?.assets) return []
+    const fileEntries: FileEntry[] = []
     
-    return Object.entries(cart.assets)
-      .filter(([path]) => {
-        // Only show text files in code editor
-        return path.match(/\.(lua|json|txt|md|glsl)$/i)
+    // Add manifest.json first if cart exists
+    if (cart?.manifest) {
+      fileEntries.push({
+        name: 'manifest.json',
+        path: '/project/manifest.json',
+        language: 'json',
+        content: JSON.stringify(cart.manifest, null, 2),
+        isManifest: true,
       })
-      .map(([path, content]) => ({
-        name: path.split('/').pop() || path,
-        path: `/project/${path}`,
-        language: getLanguageFromPath(path),
-        content: typeof content === 'string' && !content.startsWith('data:') ? content : '',
-      }))
-      .sort((a, b) => {
-        // Put main.lua first
-        if (a.name === 'main.lua') return -1
-        if (b.name === 'main.lua') return 1
-        return a.name.localeCompare(b.name)
-      })
+    }
+    
+    // Add all .lua files from assets
+    if (cart?.assets) {
+      const assetFiles = Object.entries(cart.assets)
+        .filter(([path]) => {
+          // Only show text files in code editor (lua, json, txt, md, glsl)
+          return path.match(/\.(lua|json|txt|md|glsl)$/i)
+        })
+        .map(([path, content]) => ({
+          name: path.split('/').pop() || path,
+          path: `/project/${path}`,
+          language: getLanguageFromPath(path) as 'lua' | 'json' | 'text',
+          content: typeof content === 'string' && !content.startsWith('data:') ? content : '',
+          isManifest: false,
+        }))
+        .sort((a, b) => {
+          // Put main.lua first after manifest
+          if (a.name === 'main.lua') return -1
+          if (b.name === 'main.lua') return 1
+          return a.name.localeCompare(b.name)
+        })
+      
+      fileEntries.push(...assetFiles)
+    }
+    
+    return fileEntries
   }, [cart])
 
   const [activePath, setActivePath] = useState<string>('')
@@ -59,17 +85,80 @@ export default function CodeEditorPage() {
 
   useEffect(() => {
     if (active) {
-      setValue(active.content)
+      // If manifest.json, always get fresh content from cart
+      if (active.isManifest && cart?.manifest) {
+        setValue(JSON.stringify(cart.manifest, null, 2))
+      } else {
+        setValue(active.content)
+      }
     }
-  }, [active])
+  }, [active, cart?.manifest])
 
   const handleChange = (newValue: string) => {
     setValue(newValue)
-    if (active) {
+    if (!active || !cartId || !user) return
+    
+    // Clear existing timer
+    if (saveTimer) {
+      clearTimeout(saveTimer)
+    }
+    
+    // Update state immediately
+    if (active.isManifest) {
+      try {
+        const parsed = JSON.parse(newValue)
+        updateManifest(parsed)
+      } catch (e) {
+        // Invalid JSON - don't update manifest yet
+        console.error('Invalid JSON in manifest:', e)
+      }
+    } else {
       const assetPath = active.path.replace('/project/', '')
       updateAsset(assetPath, newValue)
     }
+    
+    // Debounce save to database
+    const timer = setTimeout(async () => {
+      setSaveStatus('saving')
+      try {
+        if (active.isManifest) {
+          // Save manifest.json
+          await saveFile({
+            cartId,
+            path: 'manifest.json',
+            content: newValue,
+            ownerId: user?.userId,
+          })
+        } else {
+          // Save asset file
+          const assetPath = active.path.replace('/project/', '')
+          await saveFile({
+            cartId,
+            path: assetPath,
+            content: newValue,
+            ownerId: user?.userId,
+          })
+        }
+        setSaveStatus('saved')
+        setTimeout(() => setSaveStatus('idle'), 2000)
+      } catch (error) {
+        console.error('Failed to save file:', error)
+        setSaveStatus('error')
+        setTimeout(() => setSaveStatus('idle'), 2000)
+      }
+    }, 1000) // Debounce 1 second
+    
+    setSaveTimer(timer)
   }
+  
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimer) {
+        clearTimeout(saveTimer)
+      }
+    }
+  }, [saveTimer])
 
 
   if (isLoading) {
@@ -103,6 +192,15 @@ export default function CodeEditorPage() {
             <option value={f.path} key={f.path}>{f.name}</option>
           ))}
         </select>
+        {saveStatus === 'saving' && (
+          <span className="text-xs text-gray-400">Saving...</span>
+        )}
+        {saveStatus === 'saved' && (
+          <span className="text-xs text-green-400">✓ Saved</span>
+        )}
+        {saveStatus === 'error' && (
+          <span className="text-xs text-red-400">✗ Error</span>
+        )}
       </div>
       <div className="editor-content p-0">
         <div className="w-full h-[70vh] md:h-[calc(100vh-300px)]">

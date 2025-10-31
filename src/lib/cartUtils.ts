@@ -12,7 +12,8 @@ export interface CartManifest {
   genre: string
   tags?: string[]
   entry: string // e.g., "main.lua"
-  palette?: string // Optional palette name or config
+  palette?: string // Optional palette name (e.g., "RetroForge 50")
+  scale?: number // Optional default scale for cart display
 }
 
 export interface CartAssets {

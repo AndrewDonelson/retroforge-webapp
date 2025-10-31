@@ -18,6 +18,8 @@ A comprehensive feature-by-feature comparison between PICO-8 (the most popular f
 | **Physics** | ❌ Manual | ✅ Box2D | RetroForge has physics |
 | **Audio Channels** | 4 channels | 8 channels | RetroForge more channels |
 | **Memory** | 2 MB limit | No strict limit* | RetroForge more flexible |
+| **Multiplayer/Networking** | ✅ Built-in (up to 4 players) | ✅ WebRTC (up to 6 players) | RetroForge uses modern WebRTC |
+| **State Machine** | ❌ No | ✅ Yes | RetroForge has flexible state management |
 | **Export Targets** | Desktop + HTML5 | Desktop + WASM + Android | RetroForge has mobile |
 
 \* *Limits may exist but are not strictly enforced*
@@ -515,7 +517,9 @@ rf.quit()                       -- Request quit
 ✅ **JSON-Based Assets:** Flexible sprite/SFX/music storage  
 ✅ **Physics Engine:** Box2D integration (fully implemented)  
 ✅ **Feature Parity:** All core PICO-8 graphics/tilemap/camera/memory APIs implemented  
+✅ **State Machine:** Flexible state management system with lifecycle callbacks, state stacking, and shared context  
 ✅ **Node System:** Godot-style scene graph (planned)  
+✅ **Multiplayer:** WebRTC-based multiplayer support (up to 6 players) with automatic state sync  
 
 ---
 
@@ -625,11 +629,30 @@ rf.quit()                       -- Request quit
 
 ### Low Priority (Coming Soon)
 
-14. **Multi-player Input** - WebRTC-based networking
-    - `rf.btn(i, [player])` parameter (coming soon)
-    - Real-time multiplayer support via WebRTC
+14. **✅ Multi-player Support** - Implemented!
+    - `rf.is_multiplayer()` - Check if in multiplayer mode
+    - `rf.player_count()` - Get number of players (1-6)
+    - `rf.my_player_id()` - Get local player ID (1-6)
+    - `rf.is_host()` - Check if local player is host
+    - `rf.btn(player_id, button)` - Host can check other players' inputs
+    - `rf.network_sync(table, tier)` - Register tables for automatic sync
+    - `rf.network_unsync(table)` - Unregister tables from sync
+    - 3-tier sync system: "fast" (30-60/sec), "moderate" (15/sec), "slow" (5/sec)
+    - Host authority model with star topology
+    - WebRTC-based real-time multiplayer support
 
-15. **Tilemap Layers** - Multi-layer support
+15. **✅ State Machine** - Implemented!
+    - `game.registerState(name, stateTable)` - Register states with lifecycle callbacks
+    - `game.changeState(name)` - Complete state transitions
+    - `game.pushState(name)` / `game.popState()` - State stacking for overlays
+    - `game.setContext(key, value)` / `game.getContext(key)` - Shared context for data passing
+    - `game.addCredit(category, name, role)` - Add credits for credits screen
+    - Built-in engine splash and credits states
+    - Complete lifecycle: Initialize, Enter, HandleInput, Update, Draw, Exit, Shutdown
+
+### Low Priority (Coming Soon)
+
+16. **Tilemap Layers** - Multi-layer support
     - 8-layer tilemap system (currently single layer)
 
 ---
@@ -653,14 +676,15 @@ rf.quit()                       -- Request quit
 | **Input** | 7 | 8 | ✅ Similar |
 | **Development Tools** | ✅ IDE | ✅ Webapp + Dev Mode | ✅ Command mode available in webapp |
 | **Command Mode** | ✅ Built-in | ✅ Webapp UI | ✅ Save/load/export available |
-| **Multi-player** | ✅ Built-in | 🔄 WebRTC (coming soon) | ⚠️ Different approach |
+| **Multi-player** | ✅ Built-in (up to 4 players) | ✅ WebRTC (up to 6 players) | ✅ Implemented |
+| **State Machine** | ❌ No | ✅ Yes | ✅ RetroForge advantage |
 | **Platforms** | Desktop + Web | Desktop + Web + Android | ✅ More platforms |
 | **Resolution** | 128×128 | 480×270 | ✅ Higher resolution |
 | **Palette** | 16 colors | 50 colors | ✅ More colors |
 
-**Overall Assessment:** RetroForge now has feature parity with PICO-8's core graphics, tilemap, camera, and memory APIs. Hot reload and debug tools are available in development mode (when running from folders). Command mode features (save, load, export) are available in the webapp UI. The main remaining advantage for PICO-8 is the all-in-one IDE experience, though RetroForge's webapp provides equivalent functionality in a browser-based interface. RetroForge offers additional features like physics, higher resolution, larger palette, Android support, and WebRTC-based multiplayer (coming soon).
+**Overall Assessment:** RetroForge now has feature parity with PICO-8's core graphics, tilemap, camera, memory APIs, and multiplayer support. Hot reload and debug tools are available in development mode (when running from folders). Command mode features (save, load, export) are available in the webapp UI. Multiplayer support is implemented via WebRTC with automatic state synchronization. RetroForge offers additional features like state machine management, physics, higher resolution, larger palette, Android support, and modern WebRTC-based multiplayer (up to 6 players). The main remaining advantage for PICO-8 is the all-in-one IDE experience, though RetroForge's webapp provides equivalent functionality in a browser-based interface.
 
 ---
 
-*Last Updated: RetroForge Engine now includes tilemap (256×256), camera, clipping, color remapping, pixel reading, sprite drawing, ellipse drawing, memory API, Box2D physics integration, hot reload (dev mode), debug tools (dev mode), cart persistence (cstore/reload, 64KB), text cursor/color state, and command mode features (save/load/export via webapp). WebRTC-based multiplayer support coming soon. Full feature parity achieved with PICO-8's core APIs.*
+*Last Updated: RetroForge Engine now includes tilemap (256×256), camera, clipping, color remapping, pixel reading, sprite drawing, ellipse drawing, memory API, Box2D physics integration, hot reload (dev mode), debug tools (dev mode), cart persistence (cstore/reload, 64KB), text cursor/color state, command mode features (save/load/export via webapp), WebRTC-based multiplayer support (up to 6 players) with automatic state synchronization, and a flexible state machine system with lifecycle callbacks, state stacking, and shared context. Full feature parity achieved with PICO-8's core APIs, including multiplayer, plus additional features like state management and physics.*
 

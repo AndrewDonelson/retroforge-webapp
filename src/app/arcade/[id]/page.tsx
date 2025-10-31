@@ -7,6 +7,11 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import { useAuth } from '@/contexts/AuthContext';
 import { ForkButton } from '@/components/carts/ForkButton';
+import { LobbyBrowserModal } from '@/components/multiplayer/LobbyBrowserModal';
+import { CreateLobbyModal } from '@/components/multiplayer/CreateLobbyModal';
+import { GameLobbyModal } from '@/components/multiplayer/GameLobbyModal';
+import { LeaderboardModal } from '@/components/multiplayer/LeaderboardModal';
+import { ProfileModal } from '@/components/multiplayer/ProfileModal';
 
 type CartDef = { id: string; name: string; file: string; desc: string };
 const CARTS: CartDef[] = [
@@ -62,6 +67,88 @@ export default function ArcadeDetailPage() {
   const thrustOscRef = useRef<OscillatorNode | null>(null);
   const musicRef = useRef<{ notes: string[]; bpm: number; gain: number; startTime: number; noteIndex: number } | null>(null);
   const musicTimeoutRef = useRef<number | null>(null);
+
+  // Multiplayer state
+  const [showLobbyBrowser, setShowLobbyBrowser] = useState(false);
+  const [showCreateLobby, setShowCreateLobby] = useState(false);
+  const [currentLobbyId, setCurrentLobbyId] = useState<Id<'lobbies'> | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  
+  // Parse cart manifest for multiplayer info
+  const [cartManifest, setCartManifest] = useState<{
+    multiplayer?: {
+      enabled: boolean;
+      minPlayers?: number;
+      maxPlayers?: number;
+      supportsSolo?: boolean;
+    };
+  } | null>(null);
+
+  // Get manifest from cartFiles if available
+  const manifestFile = useQuery(
+    api.cartFiles.getCartFile,
+    dbCart
+      ? { cartId: dbCart._id, path: 'manifest.json', userId: user?.userId }
+      : 'skip'
+  );
+
+  // Load manifest when cart is loaded
+  useEffect(() => {
+    async function loadManifest() {
+      try {
+        let manifestData: any = null;
+        
+        if (manifestFile?.content) {
+          // Parse manifest from cartFiles
+          try {
+            manifestData = JSON.parse(manifestFile.content);
+          } catch (err) {
+            console.error('Failed to parse manifest:', err);
+          }
+        } else if (dbCart?.cartData) {
+          // Extract manifest from .rfs file (base64 decoded)
+          try {
+            const binaryString = atob(dbCart.cartData);
+            const buf = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              buf[i] = binaryString.charCodeAt(i);
+            }
+            
+            // Parse as ZIP
+            const JSZip = (await import('jszip')).default;
+            const zip = await JSZip.loadAsync(buf);
+            const manifestEntry = zip.file('manifest.json');
+            if (manifestEntry) {
+              const manifestText = await manifestEntry.async('text');
+              manifestData = JSON.parse(manifestText);
+            }
+          } catch (err) {
+            console.error('Failed to extract manifest from cart:', err);
+          }
+        } else if (cart.file) {
+          // Try to load manifest from public folder (for hardcoded carts)
+          try {
+            const res = await fetch(cart.file.replace('.rf', '-manifest.json'));
+            if (res.ok) {
+              manifestData = await res.json();
+            }
+          } catch {
+            // Manifest not found, assume no multiplayer
+          }
+        }
+        
+        setCartManifest(manifestData);
+      } catch (err) {
+        console.error('Failed to load manifest:', err);
+      }
+    }
+    
+    loadManifest();
+  }, [manifestFile, dbCart, cart.file]);
+  
+  const isMultiplayerEnabled = cartManifest?.multiplayer?.enabled ?? false;
+  const maxPlayers = cartManifest?.multiplayer?.maxPlayers ?? 6;
 
   useEffect(() => {
     let cancelled = false;
@@ -336,7 +423,7 @@ export default function ArcadeDetailPage() {
           <h1 className="text-2xl font-semibold">{cart.name}</h1>
           <p className="text-gray-300 text-sm mt-1">{cart.desc}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {isAuthenticated && existingFork ? (
             <a
               href={`/editor?cartId=${existingFork._id}`}
@@ -353,6 +440,43 @@ export default function ArcadeDetailPage() {
               />
             )
           )}
+          
+          {/* Multiplayer buttons */}
+          {isMultiplayerEnabled && isAuthenticated && dbCart && (
+            <>
+              <button
+                onClick={() => setShowLobbyBrowser(true)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded"
+              >
+                Browse Lobbies
+              </button>
+              <button
+                onClick={() => setShowCreateLobby(true)}
+                className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded"
+              >
+                Create Lobby
+              </button>
+            </>
+          )}
+          
+          {/* Leaderboard and Profile buttons */}
+          {isAuthenticated && dbCart && (
+            <>
+              <button
+                onClick={() => setShowLeaderboard(true)}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded"
+              >
+                Leaderboards
+              </button>
+              <button
+                onClick={() => setShowProfile(true)}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded"
+              >
+                Profile
+              </button>
+            </>
+          )}
+          
           <select
             value={scale}
             onChange={(e)=>setScale(parseInt(e.target.value)||1)}
@@ -370,6 +494,62 @@ export default function ArcadeDetailPage() {
       <div className="rounded border border-gray-700 bg-black inline-block">
         <canvas ref={canvasRef} />
       </div>
+
+      {/* Multiplayer Modals */}
+      {showLobbyBrowser && dbCart && (
+        <LobbyBrowserModal
+          cartId={dbCart._id}
+          onJoinLobby={(lobbyId) => {
+            setCurrentLobbyId(lobbyId);
+            setShowLobbyBrowser(false);
+          }}
+          onCreateLobby={() => {
+            setShowLobbyBrowser(false);
+            setShowCreateLobby(true);
+          }}
+          onClose={() => setShowLobbyBrowser(false)}
+        />
+      )}
+
+      {showCreateLobby && dbCart && (
+        <CreateLobbyModal
+          cartId={dbCart._id}
+          maxPlayers={maxPlayers}
+          onLobbyCreated={(lobbyId) => {
+            setCurrentLobbyId(lobbyId);
+            setShowCreateLobby(false);
+          }}
+          onCancel={() => setShowCreateLobby(false)}
+        />
+      )}
+
+      {currentLobbyId && (
+        <GameLobbyModal
+          lobbyId={currentLobbyId}
+          onStartGame={() => {
+            // TODO: Initialize multiplayer mode and start game
+            setCurrentLobbyId(null);
+            // start() will be called with multiplayer context
+            console.log('Starting multiplayer game...');
+          }}
+          onLeave={() => {
+            setCurrentLobbyId(null);
+          }}
+        />
+      )}
+
+      {showLeaderboard && dbCart && (
+        <LeaderboardModal
+          cartId={dbCart._id}
+          onClose={() => setShowLeaderboard(false)}
+        />
+      )}
+
+      {showProfile && (
+        <ProfileModal
+          onClose={() => setShowProfile(false)}
+        />
+      )}
     </div>
   );
 }

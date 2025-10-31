@@ -15,6 +15,7 @@ import type * as carts from "../carts.js";
 import type * as exampleCarts from "../exampleCarts.js";
 import type * as lobbies from "../lobbies.js";
 import type * as profiles from "../profiles.js";
+import type * as syncExampleCarts from "../syncExampleCarts.js";
 import type * as webrtc from "../webrtc.js";
 
 import type {
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   exampleCarts: typeof exampleCarts;
   lobbies: typeof lobbies;
   profiles: typeof profiles;
+  syncExampleCarts: typeof syncExampleCarts;
   webrtc: typeof webrtc;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

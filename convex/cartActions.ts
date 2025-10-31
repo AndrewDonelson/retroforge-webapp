@@ -40,6 +40,7 @@ export const forkCart = mutation({
       isPublic: false, // Forked carts start as private
       cartData: original.cartData,
       isExample: false,
+      isMultiplayer: original.isMultiplayer, // Inherit from original
     })
 
     return { cartId: forkedId }
@@ -60,6 +61,7 @@ export const updateCart = mutation({
       imageUrl: v.optional(v.string()),
       cartData: v.optional(v.string()),
       isPublic: v.optional(v.boolean()),
+      isMultiplayer: v.optional(v.boolean()),
     }),
   },
   handler: async (ctx, { cartId, ownerId, updates }) => {
@@ -118,6 +120,7 @@ export const createCart = mutation({
       isPublic: isPublic ?? false,
       cartData,
       isExample: false,
+      isMultiplayer: false, // Default to false; can be updated when cartData is set
     })
 
     return { cartId }

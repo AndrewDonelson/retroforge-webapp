@@ -17,6 +17,7 @@ export default defineSchema({
     isPublic: v.boolean(), // Whether cart is public or private
     cartData: v.optional(v.string()), // Base64 encoded .rf file data
     isExample: v.boolean(), // True for official RetroForge example carts
+    isMultiplayer: v.optional(v.boolean()), // True if cart supports multiplayer (defaults to false)
   })
     .index('by_genre', ['genre'])
     .index('by_created', ['createdAt'])

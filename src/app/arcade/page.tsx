@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
 
 type Cart = { id: string; name: string; file: string };
-const CARTS: Cart[] = [
-  { id: "hello", name: "Hello World", file: "/carts/helloworld.rf" },
-  { id: "moon", name: "Moon Lander", file: "/carts/moon-lander.rf" },
-];
 
 declare global {
   interface Window {
@@ -20,13 +19,33 @@ declare global {
 }
 
 export default function ArcadePage() {
+  // Get all carts from database
+  const dbCarts = useQuery(api.carts.list, {});
+  
+  // Convert database carts to Cart type
+  const CARTS = useMemo(() => {
+    if (!dbCarts) return [];
+    return dbCarts.map((c) => ({
+      id: c._id,
+      name: c.title,
+      file: c.cartData ? undefined : `/carts/${c._id}.rf`, // Use cartData if available, otherwise file URL
+    })) as Cart[];
+  }, [dbCarts]);
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
   const [running, setRunning] = useState(false);
   const [scale, setScale] = useState(1);
   const rafRef = useRef<number | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
-  const [cart, setCart] = useState<Cart>(CARTS[0]);
+  const [cart, setCart] = useState<Cart | null>(null);
+
+  // Set first cart when carts are loaded
+  useEffect(() => {
+    if (CARTS.length > 0 && !cart) {
+      setCart(CARTS[0]);
+    }
+  }, [CARTS, cart]);
 
   useEffect(() => {
     let cancelled = false;
@@ -143,15 +162,33 @@ export default function ArcadePage() {
   }, [ready]);
 
   async function start() {
-    if (!ready || running) return;
+    if (!ready || running || !cart) return;
     if (!window.rf_init || !window.rf_load_cart) return;
     ensureAudio();
     if (audioRef.current && audioRef.current.state === "suspended") {
       try { await audioRef.current.resume(); } catch {}
     }
     window.rf_init!(60);
-    const res = await fetch(cart.file);
-    const buf = new Uint8Array(await res.arrayBuffer());
+    
+    // Load cart data
+    let buf: Uint8Array;
+    if (cart.file) {
+      // Load from file URL
+      const res = await fetch(cart.file);
+      buf = new Uint8Array(await res.arrayBuffer());
+    } else {
+      // Load from database cartData (base64)
+      const dbCart = dbCarts?.find(c => c._id === cart.id);
+      if (!dbCart?.cartData) {
+        console.error('No cart data available');
+        return;
+      }
+      const binaryString = atob(dbCart.cartData);
+      buf = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        buf[i] = binaryString.charCodeAt(i);
+      }
+    }
     window.rf_load_cart!(buf);
 
     const cvs = canvasRef.current!;
@@ -161,15 +198,19 @@ export default function ArcadePage() {
     const s = Math.max(1, scale|0);
     cvs.style.width = `${width*s}px`;
     cvs.style.height = `${height*s}px`;
+    // Pre-allocate ImageData once and reuse it
     const img = ctx.createImageData(width, height);
+    // Pre-allocate buffer for pixel transfer (reuse to avoid allocations)
+    const pixelBuf = new Uint8Array(img.data.length);
+    
     const loop = () => {
       if (!window.rf_run_frame || !window.rf_get_pixels) return;
       window.rf_run_frame!();
-      // Convert ImageData.data (Uint8ClampedArray) to Uint8Array for WASM
-      const buf = new Uint8Array(img.data.buffer);
-      window.rf_get_pixels!(buf);
-      // Copy back to ImageData
-      img.data.set(buf);
+      
+      // Get pixels directly into our buffer
+      window.rf_get_pixels!(pixelBuf);
+      // Copy directly to ImageData (more efficient than creating new arrays)
+      img.data.set(pixelBuf);
       ctx.putImageData(img, 0, 0);
       rafRef.current = requestAnimationFrame(loop);
     };
@@ -200,15 +241,20 @@ export default function ArcadePage() {
         >
           {[1,2,3,4].map(s => <option key={s} value={s}>Scale {s}x</option>)}
         </select>
-        <select
-          value={cart.id}
-          onChange={(e) => setCart(CARTS.find(c => c.id === e.target.value) || CARTS[0])}
-          className="bg-gray-800 border border-gray-700 rounded px-3 py-2"
-        >
-          {CARTS.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        {CARTS.length > 0 && (
+          <select
+            value={cart?.id || ''}
+            onChange={(e) => {
+              const selected = CARTS.find(c => c.id === e.target.value);
+              if (selected) setCart(selected);
+            }}
+            className="bg-gray-800 border border-gray-700 rounded px-3 py-2"
+          >
+            {CARTS.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
         {running ? (
           <button
             onClick={stop}
@@ -219,10 +265,10 @@ export default function ArcadePage() {
         ) : (
           <button
             onClick={start}
-            disabled={!ready}
+            disabled={!ready || !cart || CARTS.length === 0}
             className="px-4 py-2 rounded bg-retro-600 hover:bg-retro-500 disabled:opacity-50"
           >
-            {ready ? "Start" : "Loading engine..."}
+            {!cart || CARTS.length === 0 ? "No carts available" : ready ? "Start" : "Loading engine..."}
           </button>
         )}
       </div>

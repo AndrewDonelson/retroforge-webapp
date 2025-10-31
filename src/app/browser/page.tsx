@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useQuery } from 'convex/react'
+import { api } from '@/convex/_generated/api'
 
 import AdCard from '@/components/ads/AdCard'
 
@@ -50,96 +52,33 @@ const GENRES: Genre[] = [
   'Other',
 ]
 
-const SAMPLE_CARTS: Cart[] = [
-  // Built-in engine demo carts
-  {
-    id: 'hello',
-    slug: 'helloworld',
-    title: 'Hello World',
-    author: 'RetroForge',
-    description: 'Minimal example cart that prints centered text.',
-    genre: 'Arcade',
-    imageUrl: '/assets/placeholders/cart01.png',
-    plays: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: 'moon',
-    slug: 'moon-lander',
-    title: 'Moon Lander',
-    author: 'RetroForge',
-    description: 'Lunar landing demo with levels, HUD, and simple SFX/music.',
-    genre: 'Arcade',
-    imageUrl: '/assets/placeholders/cart02.png',
-    plays: 0,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '1',
-    title: 'Pixel Quest',
-    author: 'dev_anna',
-    description: 'A retro platformer with tight controls and vibrant pixel art.',
-    genre: 'Platformer',
-    imageUrl: '/assets/placeholders/cart01.png',
-    plays: 12450,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Dungeon Delver',
-    author: 'bit_mage',
-    description: 'Turn-based roguelike with procedural dungeons and permadeath.',
-    genre: 'RPG',
-    imageUrl: '/assets/placeholders/cart02.png',
-    plays: 8421,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
-  },
-  {
-    id: '3',
-    title: 'Astro Blaster',
-    author: 'retro_joe',
-    description: 'Arcade shooter inspired by classic space blasters.',
-    genre: 'Shooter',
-    imageUrl: '/assets/placeholders/cart03.png',
-    plays: 15321,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString(),
-  },
-  {
-    id: '4',
-    title: 'Race Rush',
-    author: 'lap_time',
-    description: 'Top-down racing with drift mechanics and time trials.',
-    genre: 'Racing',
-    imageUrl: '/assets/placeholders/cart04.png',
-    plays: 6123,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(),
-  },
-  {
-    id: '5',
-    title: 'Block Builder',
-    author: 'vox_artist',
-    description: 'Sandbox simulation with block-based building challenges.',
-    genre: 'Simulation',
-    imageUrl: '/assets/placeholders/cart05.png',
-    plays: 4312,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(),
-  },
-]
-
 export default function BrowserPage() {
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([])
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortKey>('popular')
 
+  // Get all carts from database
+  const dbCarts = useQuery(api.carts.list, {})
+
+  // Convert database carts to the Cart type expected by the UI
+  const allCarts = useMemo(() => {
+    if (!dbCarts) return []
+    
+    return dbCarts.map((c) => ({
+      id: c._id,
+      title: c.title,
+      author: c.author,
+      description: c.description,
+      genre: c.genre as Genre,
+      imageUrl: c.imageUrl,
+      plays: c.plays,
+      createdAt: new Date(c.createdAt).toISOString(),
+      updatedAt: new Date(c.updatedAt).toISOString(),
+    }))
+  }, [dbCarts])
+
   const filtered = useMemo(() => {
-    let list = [...SAMPLE_CARTS]
+    let list = [...allCarts]
 
     if (selectedGenres.length > 0) {
       const set = new Set(selectedGenres)
@@ -169,7 +108,7 @@ export default function BrowserPage() {
     }
 
     return list
-  }, [selectedGenres, search, sort])
+  }, [allCarts, selectedGenres, search, sort])
 
   function toggleGenre(g: Genre) {
     setSelectedGenres((prev) =>
@@ -266,7 +205,7 @@ export default function BrowserPage() {
             ('id' in cart && (cart as any).id?.toString().startsWith('__ad__')) ? (
               <AdCard key={(cart as any).id} />
             ) : (
-            <Link href={`/arcade/${cart.slug ?? cart.id}`} className="block" key={cart.id}>
+            <Link href={`/arcade/${cart.id}`} className="block" key={cart.id}>
             <article
               className="card-retro overflow-hidden bg-gray-850 hover:border-retro-500 transition-colors"
             >

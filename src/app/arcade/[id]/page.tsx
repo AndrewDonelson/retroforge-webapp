@@ -13,11 +13,7 @@ import { GameLobbyModal } from '@/components/multiplayer/GameLobbyModal';
 import { LeaderboardModal } from '@/components/multiplayer/LeaderboardModal';
 import { ProfileModal } from '@/components/multiplayer/ProfileModal';
 
-type CartDef = { id: string; name: string; file: string; desc: string };
-const CARTS: CartDef[] = [
-  { id: "helloworld", name: "Hello World", file: "/carts/helloworld.rf", desc: "Minimal example cart that prints centered text." },
-  { id: "moon-lander", name: "Moon Lander", file: "/carts/moon-lander.rf", desc: "Lunar landing demo with levels, HUD, and simple SFX/music." },
-];
+type CartDef = { id: string; name: string; file: string | undefined; desc: string };
 
 declare global {
   interface Window {
@@ -36,7 +32,7 @@ export default function ArcadeDetailPage() {
   const params = useParams<{ id: string }>();
   const { isAuthenticated, user } = useAuth();
   
-  // Try to get cart from database first, fallback to hardcoded list
+  // Get cart from database (all cart IDs should be Convex IDs)
   const cartIdParam = params.id as string;
   const isConvexId = cartIdParam?.startsWith('j'); // Convex IDs start with 'j'
   
@@ -53,10 +49,10 @@ export default function ArcadeDetailPage() {
       : 'skip'
   );
   
-  const fallbackCart = useMemo(() => CARTS.find(c => c.id === params.id) || CARTS[0], [params.id]);
+  // Only use database cart - no fallback to hardcoded carts
   const cart = dbCart 
     ? { id: dbCart._id, name: dbCart.title, file: dbCart.cartData ? undefined : `/carts/${params.id}.rf`, desc: dbCart.description }
-    : fallbackCart;
+    : null;
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
@@ -95,19 +91,15 @@ export default function ArcadeDetailPage() {
 
   // Load manifest when cart is loaded
   useEffect(() => {
+    if (!dbCart) return; // No cart to load manifest for
+    
     async function loadManifest() {
       try {
         let manifestData: any = null;
+        let loadedFromCart = false;
         
-        if (manifestFile?.content) {
-          // Parse manifest from cartFiles
-          try {
-            manifestData = JSON.parse(manifestFile.content);
-          } catch (err) {
-            console.error('Failed to parse manifest:', err);
-          }
-        } else if (dbCart?.cartData) {
-          // Extract manifest from .rfs file (base64 decoded)
+        // Always try to extract from cartData first (most reliable)
+        if (dbCart?.cartData) {
           try {
             const binaryString = atob(dbCart.cartData);
             const buf = new Uint8Array(binaryString.length);
@@ -122,33 +114,42 @@ export default function ArcadeDetailPage() {
             if (manifestEntry) {
               const manifestText = await manifestEntry.async('text');
               manifestData = JSON.parse(manifestText);
+              loadedFromCart = true;
+              console.log('[Multiplayer] Loaded manifest from cartData, has multiplayer:', !!manifestData.multiplayer, manifestData);
+            } else {
+              console.warn('[Multiplayer] cartData exists but manifest.json not found in ZIP');
             }
           } catch (err) {
-            console.error('Failed to extract manifest from cart:', err);
+            console.error('[Multiplayer] Failed to extract manifest from cartData:', err);
           }
-        } else if (cart.file) {
-          // Try to load manifest from public folder (for hardcoded carts)
+        } else {
+          console.warn('[Multiplayer] dbCart.cartData is missing, will try cartFiles fallback');
+        }
+        
+        // Fallback to manifestFile if cartData extraction failed
+        if (!manifestData && manifestFile?.content) {
           try {
-            const res = await fetch(cart.file.replace('.rf', '-manifest.json'));
-            if (res.ok) {
-              manifestData = await res.json();
-            }
-          } catch {
-            // Manifest not found, assume no multiplayer
+            manifestData = JSON.parse(manifestFile.content);
+            console.log('[Multiplayer] Loaded manifest from cartFiles, has multiplayer:', !!manifestData.multiplayer);
+          } catch (err) {
+            console.error('Failed to parse manifest:', err);
           }
         }
         
-        setCartManifest(manifestData);
+        // Only update state if manifest data actually changed
+        setCartManifest(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(manifestData)) {
+            return prev; // No change, return previous value to avoid re-render
+          }
+          return manifestData;
+        });
       } catch (err) {
         console.error('Failed to load manifest:', err);
       }
     }
     
     loadManifest();
-  }, [manifestFile, dbCart, cart.file]);
-  
-  const isMultiplayerEnabled = cartManifest?.multiplayer?.enabled ?? false;
-  const maxPlayers = cartManifest?.multiplayer?.maxPlayers ?? 6;
+  }, [manifestFile?.content, dbCart?._id, dbCart?.cartData]); // Include cartData in dependencies
 
   useEffect(() => {
     let cancelled = false;
@@ -171,13 +172,13 @@ export default function ArcadeDetailPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // Auto-start once ready
+  // Auto-start once ready (only if cart exists)
   useEffect(() => {
-    if (ready && !running) {
+    if (ready && !running && cart) {
       start();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [ready, cart]);
 
   function ensureAudio() {
     if (!audioRef.current) {
@@ -361,6 +362,90 @@ export default function ArcadeDetailPage() {
     return cleanup;
   }, [ready]);
 
+  // Compute derived values after all hooks
+  // Use isMultiplayer from schema for button visibility (fast, no parsing needed)
+  // Default to false if not set (for backward compatibility with existing carts)
+  const isMultiplayerEnabled = dbCart?.isMultiplayer ?? false;
+  // Load detailed properties from manifest when needed (for lobby)
+  const maxPlayers = cartManifest?.multiplayer?.maxPlayers ?? 6;
+  const minPlayers = cartManifest?.multiplayer?.minPlayers ?? 2;
+  const supportsSolo = cartManifest?.multiplayer?.supportsSolo ?? false;
+  
+  // Debug: Log manifest state (remove after testing)
+  useEffect(() => {
+    if (cartManifest) {
+      console.log('[Multiplayer] Manifest loaded:', {
+        enabled: isMultiplayerEnabled,
+        minPlayers,
+        maxPlayers,
+        supportsSolo,
+        hasMultiplayer: !!cartManifest.multiplayer,
+        multiplayer: cartManifest.multiplayer,
+        fullManifest: cartManifest,
+        manifestKeys: Object.keys(cartManifest)
+      });
+      
+      // Check if multiplayer exists but might be malformed
+      if (!cartManifest.multiplayer && cartManifest.title === 'Multiplayer Platformer Demo') {
+        console.warn('[Multiplayer] Expected multiplayer property missing from manifest!', cartManifest);
+      }
+    } else {
+      console.log('[Multiplayer] Manifest not loaded yet, dbCart:', dbCart?._id);
+    }
+  }, [cartManifest, isMultiplayerEnabled, minPlayers, maxPlayers, supportsSolo, dbCart]);
+
+  // Show loading state while checking for cart (after all hooks)
+  if (dbCart === undefined && !isConvexId) {
+    // Not a valid Convex ID
+    return (
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="bg-red-900/50 border border-red-700 rounded-lg p-6">
+          <h1 className="text-2xl font-semibold mb-2 text-red-400">Invalid Cart ID</h1>
+          <p className="text-gray-300">
+            The cart ID "{params.id}" is not valid.
+          </p>
+          <a href="/browser" className="text-retro-400 hover:text-retro-300 mt-4 inline-block">
+            ← Back to Browse Games
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if cart not found (after query completes)
+  if (dbCart === null && isConvexId) {
+    return (
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="bg-red-900/50 border border-red-700 rounded-lg p-6">
+          <h1 className="text-2xl font-semibold mb-2 text-red-400">Cart Not Found</h1>
+          <p className="text-gray-300">
+            The cart with ID "{params.id}" was not found in the database.
+          </p>
+          <a href="/browser" className="text-retro-400 hover:text-retro-300 mt-4 inline-block">
+            ← Back to Browse Games
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while cart is being loaded
+  if (!cart && dbCart === undefined) {
+    return (
+      <div className="max-w-6xl mx-auto p-4">
+        <div className="bg-gray-800 rounded-lg p-6">
+          <h1 className="text-2xl font-semibold mb-2">Loading Cart...</h1>
+          <p className="text-gray-300">Please wait while we load the cart.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure cart exists before rendering
+  if (!cart) {
+    return null; // Should not reach here, but safety check
+  }
+
   async function start() {
     if (!ready || running) return;
     if (!window.rf_init || !window.rf_load_cart) return;
@@ -380,7 +465,7 @@ export default function ArcadeDetailPage() {
         buf[i] = binaryString.charCodeAt(i);
       }
     } else if (cart.file) {
-      // Load from file (hardcoded carts)
+      // Load from file URL (for carts stored in /public/carts/)
       const res = await fetch(cart.file);
       buf = new Uint8Array(await res.arrayBuffer());
     } else {
@@ -393,15 +478,19 @@ export default function ArcadeDetailPage() {
     const width = 480, height = 270; cvs.width = width; cvs.height = height;
     const s = Math.max(1, scale|0);
     cvs.style.width = `${width*s}px`; cvs.style.height = `${height*s}px`;
+    // Pre-allocate ImageData once and reuse it
     const img = ctx.createImageData(width, height);
+    // Pre-allocate buffer for pixel transfer (reuse to avoid allocations)
+    const pixelBuf = new Uint8Array(img.data.length);
+    
     const loop = () => { 
       if (!window.rf_run_frame || !window.rf_get_pixels) return; 
       window.rf_run_frame!(); 
-      // Convert ImageData.data (Uint8ClampedArray) to Uint8Array for WASM
-      const buf = new Uint8Array(img.data.buffer);
-      window.rf_get_pixels!(buf);
-      // Copy back to ImageData
-      img.data.set(buf);
+      
+      // Get pixels directly into our buffer
+      window.rf_get_pixels!(pixelBuf);
+      // Copy directly to ImageData (more efficient than creating new arrays)
+      img.data.set(pixelBuf);
       ctx.putImageData(img, 0, 0); 
       rafRef.current = requestAnimationFrame(loop); 
     };
@@ -441,22 +530,18 @@ export default function ArcadeDetailPage() {
             )
           )}
           
-          {/* Multiplayer buttons */}
-          {isMultiplayerEnabled && isAuthenticated && dbCart && (
-            <>
-              <button
-                onClick={() => setShowLobbyBrowser(true)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded"
-              >
-                Browse Lobbies
-              </button>
-              <button
-                onClick={() => setShowCreateLobby(true)}
-                className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded"
-              >
-                Create Lobby
-              </button>
-            </>
+          {/* Multiplayer button - single button that creates/joins lobby */}
+          {isAuthenticated && dbCart && dbCart.isMultiplayer && (
+            <button
+              onClick={() => {
+                // Automatically create a lobby when clicking "Play Multiplayer"
+                setShowCreateLobby(true);
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded"
+              title="Start a multiplayer game"
+            >
+              Play Multiplayer
+            </button>
           )}
           
           {/* Leaderboard and Profile buttons */}
@@ -523,14 +608,25 @@ export default function ArcadeDetailPage() {
         />
       )}
 
-      {currentLobbyId && (
+      {currentLobbyId && dbCart && (
         <GameLobbyModal
           lobbyId={currentLobbyId}
-          onStartGame={() => {
+          cartId={dbCart._id}
+          minPlayers={minPlayers}
+          supportsSolo={supportsSolo}
+          onStartGame={(isSolo) => {
             // TODO: Initialize multiplayer mode and start game
             setCurrentLobbyId(null);
-            // start() will be called with multiplayer context
-            console.log('Starting multiplayer game...');
+            // If solo, start game immediately without multiplayer
+            // Otherwise, initialize WebRTC connections
+            if (isSolo) {
+              // Start in solo mode (no multiplayer initialization)
+              start();
+            } else {
+              // Start in multiplayer mode (TODO: initialize WebRTC)
+              console.log('Starting multiplayer game...');
+              start();
+            }
           }}
           onLeave={() => {
             setCurrentLobbyId(null);

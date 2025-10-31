@@ -36,11 +36,11 @@ const EXAMPLE_CARTS = [
 ]
 
 /**
- * Utility to sync example carts to the database
- * Creates them if they don't exist, updates if they do
- * Can be called from client or server
+ * @deprecated Use syncExampleCarts from syncExampleCarts.ts instead
+ * This function is kept for backwards compatibility but does not unpack carts.
+ * The new syncExampleCarts function unpacks .rf files and stores all cart files.
  */
-export const syncExampleCarts = mutation({
+export const syncExampleCartsOld = mutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now()

@@ -41,6 +41,24 @@ const EXAMPLE_CARTS = [
     imageUrl: '/assets/placeholders/cart01.png',
     cartFileUrl: '/carts/multiplayer-platformer.rf',
   },
+  {
+    id: 'kitchen-sink',
+    title: 'Kitchen Sink Demo',
+    author: 'RetroForge',
+    description: 'A comprehensive demo showcasing all RetroForge Engine features.',
+    genre: 'Demo',
+    imageUrl: '/assets/placeholders/cart04.png',
+    cartFileUrl: '/carts/kitchen-sink.rf',
+  },
+  {
+    id: 'galaxy',
+    title: 'Galaxy Simulation',
+    author: 'RetroForge',
+    description: 'A physics-based spiral galaxy simulation with 2048 stars orbiting a central gravitational point.',
+    genre: 'Simulation',
+    imageUrl: '/assets/placeholders/cart05.png',
+    cartFileUrl: '/carts/galaxy.rf',
+  },
 ]
 
 /**

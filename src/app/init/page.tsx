@@ -25,6 +25,8 @@ export default function InitPage() {
         { id: 'moon-lander', url: '/carts/moon-lander.rf' },
         { id: 'tron-lightcycles', url: '/carts/tron-lightcycles.rf' },
         { id: 'multiplayer-platformer', url: '/carts/multiplayer-platformer.rf' },
+        { id: 'kitchen-sink', url: '/carts/kitchen-sink.rf' },
+        { id: 'galaxy', url: '/carts/galaxy.rf' },
       ]
 
       const cartsData = await Promise.all(

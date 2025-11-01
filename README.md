@@ -100,6 +100,12 @@ npm start
 - **ADSR envelope** controls
 - **Real-time preview** with Web Audio API
 
+### State Management
+- **State Machine API** - Flexible state management with lifecycle callbacks
+- **Module-Based States** - Convention-based state modules via `rf.import()`
+- **State Stacking** - Push/pop states for overlays (pause menus, etc.)
+- **Shared Context** - Pass data between states
+
 ### Cart Management
 - **Local storage** - no cloud required
 - **Import/export** .rfs and .rfe files

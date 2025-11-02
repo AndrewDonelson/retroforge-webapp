@@ -62,8 +62,14 @@ export default function APIReferencePage() {
         {/* Footer Navigation */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center">
           <Link 
-            href="/docs/comparison"
+            href="/docs/guide"
             className="btn-retro"
+          >
+            View Developer Guide →
+          </Link>
+          <Link 
+            href="/docs/comparison"
+            className="btn-retro-secondary"
           >
             View PICO-8 Comparison →
           </Link>

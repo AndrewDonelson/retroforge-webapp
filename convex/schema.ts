@@ -123,6 +123,33 @@ export default defineSchema({
   })
     .index('by_game', ['gameInstanceId'])
     .index('by_cart', ['cartId']),
+  // Cart likes - tracks which users liked which carts
+  cartLikes: defineTable({
+    cartId: v.id('carts'),
+    userId: v.id('users'),
+    createdAt: v.number(),
+  })
+    .index('by_cart', ['cartId'])
+    .index('by_user', ['userId'])
+    .index('by_cart_user', ['cartId', 'userId']), // Unique constraint: one like per user per cart
+  // User favorites - bookmarks for carts users want to save
+  userFavorites: defineTable({
+    userId: v.id('users'),
+    cartId: v.id('carts'),
+    createdAt: v.number(),
+  })
+    .index('by_user', ['userId'])
+    .index('by_cart', ['cartId'])
+    .index('by_user_cart', ['userId', 'cartId']), // Unique constraint: one favorite per user per cart
+  // RetroForge community statistics (single record with id "stats")
+  retroforge: defineTable({
+    games_created: v.number(), // Total number of carts in carts table
+    active_devs: v.number(), // Number of authenticated users who created at least 1 published cart
+    games_played: v.number(), // Total number of times carts were started/played
+    total_lobbies: v.optional(v.number()), // Total number of multiplayer lobbies created
+    total_matches: v.optional(v.number()), // Total number of multiplayer matches completed
+    last_updated: v.number(), // Timestamp of last update
+  }),
 })
 
 

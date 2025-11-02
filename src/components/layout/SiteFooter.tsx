@@ -2,7 +2,7 @@ import pkg from '../../../package.json'
 
 export default function SiteFooter() {
   const webappVersion = (pkg as any).version || '0.0.0'
-  const engineVersion = process.env.NEXT_PUBLIC_ENGINE_VERSION || '0.1.0'
+  const engineVersion = process.env.NEXT_PUBLIC_ENGINE_VERSION || 'v1.0 Alpha'
   return (
     <footer className="border-t border-gray-700 bg-gray-800/50 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

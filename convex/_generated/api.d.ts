@@ -13,8 +13,11 @@ import type * as cartActions from "../cartActions.js";
 import type * as cartFiles from "../cartFiles.js";
 import type * as carts from "../carts.js";
 import type * as exampleCarts from "../exampleCarts.js";
+import type * as interactions from "../interactions.js";
 import type * as lobbies from "../lobbies.js";
 import type * as profiles from "../profiles.js";
+import type * as scheduled from "../scheduled.js";
+import type * as stats from "../stats.js";
 import type * as syncExampleCarts from "../syncExampleCarts.js";
 import type * as webrtc from "../webrtc.js";
 
@@ -38,8 +41,11 @@ declare const fullApi: ApiFromModules<{
   cartFiles: typeof cartFiles;
   carts: typeof carts;
   exampleCarts: typeof exampleCarts;
+  interactions: typeof interactions;
   lobbies: typeof lobbies;
   profiles: typeof profiles;
+  scheduled: typeof scheduled;
+  stats: typeof stats;
   syncExampleCarts: typeof syncExampleCarts;
   webrtc: typeof webrtc;
 }>;

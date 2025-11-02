@@ -62,8 +62,14 @@ export default function ComparisonPage() {
         {/* Footer Navigation */}
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center">
           <Link 
-            href="/docs/api-reference"
+            href="/docs/guide"
             className="btn-retro"
+          >
+            View Developer Guide →
+          </Link>
+          <Link 
+            href="/docs/api-reference"
+            className="btn-retro-secondary"
           >
             View API Reference →
           </Link>

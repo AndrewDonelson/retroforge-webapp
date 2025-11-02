@@ -120,6 +120,7 @@ Play RetroForge carts directly in the browser:
 - **WASM engine** for native performance
 - **Full compatibility** with desktop engine
 - **Mobile support** with touch controls
+- **WASM Interface Module** (`src/lib/wasmInterface.ts`) - Centralized interface for WASM engine interaction, input handling, and frame rendering
 
 ## 📱 Responsive Design
 

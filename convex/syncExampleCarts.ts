@@ -308,22 +308,26 @@ export const syncExampleCarts = action({
         // Unpack cart
         const { manifest, assets, sfx, music, sprites } = await unpackCartServer(base64)
 
-              // Merge manifest with cart definition
-              const cartRecord = {
-                title: manifest.title || cartDef.title,
-                author: manifest.author || cartDef.author,
-                description: manifest.description || cartDef.description,
-                genre: cartDef.genre, // Use provided genre
-                imageUrl: cartDef.imageUrl,
-                plays: 0,
-                createdAt: now,
-                updatedAt: now,
-                popularityScore: 0,
-                isPublic: true,
-                isExample: true,
-                cartData: base64, // Store packed cart data
-                isMultiplayer: manifest.multiplayer?.enabled === true, // Extract from manifest
-              }
+        // Handle new manifest structure: extract from fullManifest if present
+        const actualManifest = manifest.fullManifest || manifest
+        const isMultiplayer = manifest.hasMultiplayer === true || manifest.enabled === true
+
+        // Merge manifest with cart definition
+        const cartRecord = {
+          title: actualManifest.title || cartDef.title,
+          author: actualManifest.author || cartDef.author,
+          description: actualManifest.description || cartDef.description,
+          genre: cartDef.genre, // Use provided genre
+          imageUrl: cartDef.imageUrl,
+          plays: 0,
+          createdAt: now,
+          updatedAt: now,
+          popularityScore: 0,
+          isPublic: true,
+          isExample: true,
+          cartData: base64, // Store packed cart data
+          isMultiplayer: isMultiplayer, // Extract from new manifest structure
+        }
 
         // Upsert cart (create or update) using internal mutation
         const { cartId, wasCreated } = await ctx.runMutation(

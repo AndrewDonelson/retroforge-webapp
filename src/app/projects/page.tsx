@@ -1,10 +1,12 @@
 "use client"
 
+import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Id } from '@/convex/_generated/dataModel'
 
 export default function ProjectsPage() {
   const { user, isAuthenticated } = useAuth()
@@ -14,6 +16,9 @@ export default function ProjectsPage() {
     api.cartActions.getMyCarts,
     isAuthenticated && user ? { ownerId: user.userId } : 'skip'
   )
+  
+  const updateCart = useMutation(api.cartActions.updateCart)
+  const [updatingCartId, setUpdatingCartId] = useState<Id<'carts'> | null>(null)
 
   if (!isAuthenticated || !user) {
     return (
@@ -31,6 +36,26 @@ export default function ProjectsPage() {
         <p className="text-gray-400">Loading...</p>
       </div>
     )
+  }
+
+  const handleTogglePublish = async (cartId: Id<'carts'>, currentIsPublic: boolean) => {
+    if (!user) return
+    
+    setUpdatingCartId(cartId)
+    try {
+      await updateCart({
+        cartId,
+        ownerId: user.userId,
+        updates: {
+          isPublic: !currentIsPublic,
+        },
+      })
+    } catch (error) {
+      console.error('Failed to toggle publish status:', error)
+      alert('Failed to update publish status. Please try again.')
+    } finally {
+      setUpdatingCartId(null)
+    }
   }
 
   return (
@@ -119,6 +144,25 @@ export default function ProjectsPage() {
                       </td>
                       <td className="p-3">
                         <div className="flex gap-2 flex-wrap">
+                          {!cart.isExample && (
+                            <button
+                              onClick={() => handleTogglePublish(cart._id, cart.isPublic)}
+                              disabled={updatingCartId === cart._id}
+                              className={`text-xs px-3 py-1 rounded whitespace-nowrap transition-colors ${
+                                cart.isPublic
+                                  ? 'bg-green-700 hover:bg-green-600 text-white'
+                                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                              } ${updatingCartId === cart._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={cart.isPublic ? 'Unpublish - Hide from browse/search' : 'Publish - Show in browse/search'}
+                            >
+                              {updatingCartId === cart._id 
+                                ? '...' 
+                                : cart.isPublic 
+                                  ? 'Unpublish' 
+                                  : 'Publish'
+                              }
+                            </button>
+                          )}
                           <Link
                             href={`/editor?cartId=${cart._id}`}
                             className="text-xs px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded whitespace-nowrap"

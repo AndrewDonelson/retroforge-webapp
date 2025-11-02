@@ -139,6 +139,7 @@ export default function ArcadePage() {
           KeyZ: 4,
           KeyX: 5,
           Enter: 5,
+          Escape: 3, // ESC maps to button 3 (Down) for pause
         };
         const idx = map[e.code];
         if (idx !== undefined) {

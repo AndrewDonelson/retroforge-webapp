@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useAction } from 'convex/react'
+import { useAction, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 
 export default function InitPage() {
@@ -11,8 +11,11 @@ export default function InitPage() {
     updated: number
     errors: string[]
   } | null>(null)
+  const [isUpdatingStats, setIsUpdatingStats] = useState(false)
+  const [statsResult, setStatsResult] = useState<string | null>(null)
 
   const syncExampleCarts = useAction(api.syncExampleCarts.syncExampleCarts)
+  const updateStats = useMutation(api.stats.updateStats)
 
   const handleSync = async () => {
     setIsSyncing(true)
@@ -67,6 +70,20 @@ export default function InitPage() {
     }
   }
 
+  const handleUpdateStats = async () => {
+    setIsUpdatingStats(true)
+    setStatsResult(null)
+
+    try {
+      const stats = await updateStats({})
+      setStatsResult(`✅ Stats updated successfully! Games: ${stats.games_created}, Developers: ${stats.active_devs}, Plays: ${stats.games_played}`)
+    } catch (error: any) {
+      setStatsResult(`❌ Error updating stats: ${error.message || 'Unknown error'}`)
+    } finally {
+      setIsUpdatingStats(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-4xl mx-auto">
@@ -87,20 +104,47 @@ export default function InitPage() {
           </ul>
         </div>
 
-        <button
-          onClick={handleSync}
-          disabled={isSyncing}
-          className={`
-            px-6 py-3 rounded font-semibold
-            ${isSyncing 
-              ? 'bg-gray-600 cursor-not-allowed' 
-              : 'bg-retro-600 hover:bg-retro-500'
-            }
-            transition-colors
-          `}
-        >
-          {isSyncing ? 'Syncing...' : 'Sync Example Carts'}
-        </button>
+        <div className="flex gap-4 mb-6">
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className={`
+              px-6 py-3 rounded font-semibold
+              ${isSyncing 
+                ? 'bg-gray-600 cursor-not-allowed' 
+                : 'bg-retro-600 hover:bg-retro-500'
+              }
+              transition-colors
+            `}
+          >
+            {isSyncing ? 'Syncing...' : 'Sync Example Carts'}
+          </button>
+
+          <button
+            onClick={handleUpdateStats}
+            disabled={isUpdatingStats}
+            className={`
+              px-6 py-3 rounded font-semibold
+              ${isUpdatingStats 
+                ? 'bg-gray-600 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-500'
+              }
+              transition-colors
+            `}
+          >
+            {isUpdatingStats ? 'Updating...' : 'Force Update Stats'}
+          </button>
+        </div>
+
+        {statsResult && (
+          <div className={`mb-6 p-4 rounded-lg ${
+            statsResult.startsWith('✅') ? 'bg-green-900/50' : 'bg-red-900/50'
+          }`}>
+            <p className={statsResult.startsWith('✅') ? 'text-green-300' : 'text-red-300'}>
+              {statsResult}
+            </p>
+          </div>
+        )}
 
         {result && (
           <div className={`mt-6 p-6 rounded-lg ${

@@ -1,12 +1,19 @@
-import Link from 'next/link'
-import { Metadata } from 'next'
+"use client"
 
-export const metadata: Metadata = {
-  title: 'RetroForge - Forge Your Retro Dreams',
-  description: 'A modern fantasy console for creating retro-style games with modern development tools.',
-}
+import Link from 'next/link'
+import { useQuery } from 'convex/react'
+import { api } from '@/convex/_generated/api'
 
 export default function HomePage() {
+  // Fetch community statistics
+  const stats = useQuery(api.stats.getStats) ?? {
+    games_created: 0,
+    active_devs: 0,
+    games_played: 0,
+    total_lobbies: 0,
+    total_matches: 0,
+    last_updated: Date.now(),
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Shared header lives in layout */}
@@ -39,7 +46,25 @@ export default function HomePage() {
           </div>
 
           {/* Documentation Links */}
-          <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto mb-16">
+          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-16">
+            <Link 
+              href="/docs/guide"
+              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="text-retro-400 text-2xl mb-2">📖</div>
+                  <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
+                    Developer Guide
+                  </h3>
+                  <p className="text-gray-300 text-sm">
+                    Complete guide: what, how, and why. Learn to build RetroForge carts like an expert.
+                  </p>
+                </div>
+                <span className="text-retro-400 text-xl group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </Link>
+            
             <Link 
               href="/docs/api-reference"
               className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group"
@@ -152,15 +177,15 @@ export default function HomePage() {
           <h2 className="text-3xl font-pixel text-white mb-8">Community Stats</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div>
-              <div className="text-4xl font-pixel text-retro-400">0</div>
+              <div className="text-4xl font-pixel text-retro-400">{stats.games_created.toLocaleString()}</div>
               <div className="text-gray-400">Games Created</div>
             </div>
             <div>
-              <div className="text-4xl font-pixel text-retro-400">0</div>
+              <div className="text-4xl font-pixel text-retro-400">{stats.active_devs.toLocaleString()}</div>
               <div className="text-gray-400">Active Developers</div>
             </div>
             <div>
-              <div className="text-4xl font-pixel text-retro-400">0</div>
+              <div className="text-4xl font-pixel text-retro-400">{stats.games_played.toLocaleString()}</div>
               <div className="text-gray-400">Games Played</div>
             </div>
             <div>

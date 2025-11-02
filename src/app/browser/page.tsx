@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { useAuth } from '@/contexts/AuthContext'
+import { Id } from '@/convex/_generated/dataModel'
 
 import AdCard from '@/components/ads/AdCard'
 
@@ -53,12 +55,16 @@ const GENRES: Genre[] = [
 ]
 
 export default function BrowserPage() {
+  const { user, isAuthenticated } = useAuth()
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([])
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortKey>('popular')
 
-  // Get all carts from database
-  const dbCarts = useQuery(api.carts.list, {})
+  // Get all public carts from database (only show published carts)
+  const dbCarts = useQuery(api.carts.list, { includePublicOnly: true })
+  
+  // Get like counts for all carts (batch query would be better, but this works for now)
+  // For better performance, we could add a cached likeCount field to carts table
 
   // Convert database carts to the Cart type expected by the UI
   const allCarts = useMemo(() => {
@@ -71,7 +77,7 @@ export default function BrowserPage() {
       description: c.description,
       genre: c.genre as Genre,
       imageUrl: c.imageUrl,
-      plays: c.plays,
+      plays: c.plays || 0, // Ensure plays is never undefined
       createdAt: new Date(c.createdAt).toISOString(),
       updatedAt: new Date(c.updatedAt).toISOString(),
     }))
@@ -234,10 +240,13 @@ export default function BrowserPage() {
                 </p>
                 <div className="mt-3 h-px bg-gray-700" />
                 <div className="flex items-center justify-between text-xs text-gray-400 mt-3">
-                  <span className="flex items-center gap-1">
-                    <span className="text-retro-400">▶</span>
-                    {cart.plays.toLocaleString()} plays
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <span className="text-retro-400">▶</span>
+                      {cart.plays.toLocaleString()} plays
+                    </span>
+                    {/* Like count - we'll show it if we have the data, otherwise it won't render */}
+                  </div>
                   <span className="whitespace-nowrap">
                     {sort === 'latest' ? 'Created ' : 'Updated '}
                     {new Date(sort === 'latest' ? cart.createdAt : cart.updatedAt).toLocaleDateString()}

@@ -27,8 +27,19 @@ export async function generateKeypair(): Promise<{ privateKey: string; publicKey
   const publicKeyBuffer = await crypto.subtle.exportKey('spki', keyPair.publicKey)
 
   // Convert to base64
-  const privateKey = btoa(String.fromCharCode(...new Uint8Array(privateKeyBuffer)))
-  const publicKey = btoa(String.fromCharCode(...new Uint8Array(publicKeyBuffer)))
+  const privateKeyArray = new Uint8Array(privateKeyBuffer)
+  let privateKeyStr = ''
+  for (let i = 0; i < privateKeyArray.length; i++) {
+    privateKeyStr += String.fromCharCode(privateKeyArray[i])
+  }
+  const privateKey = btoa(privateKeyStr)
+  
+  const publicKeyArray = new Uint8Array(publicKeyBuffer)
+  let publicKeyStr = ''
+  for (let i = 0; i < publicKeyArray.length; i++) {
+    publicKeyStr += String.fromCharCode(publicKeyArray[i])
+  }
+  const publicKey = btoa(publicKeyStr)
 
   return { privateKey, publicKey }
 }
@@ -111,7 +122,12 @@ export async function signMessage(message: string): Promise<string> {
   )
 
   // Convert to base64
-  return btoa(String.fromCharCode(...new Uint8Array(signature)))
+  const signatureArray = new Uint8Array(signature)
+  let signatureStr = ''
+  for (let i = 0; i < signatureArray.length; i++) {
+    signatureStr += String.fromCharCode(signatureArray[i])
+  }
+  return btoa(signatureStr)
 }
 
 /**

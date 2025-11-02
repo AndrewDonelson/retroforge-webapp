@@ -194,10 +194,10 @@ export default function ArcadeDetailPage() {
   const isMultiplayerEnabled = dbCart?.isMultiplayer ?? false;
   
   // Handle new manifest structure: extract from top-level or fullManifest
-  const maxPlayers = cartManifest?.maxPlayers ?? cartManifest?.multiplayer?.maxPlayers ?? 6;
-  const minPlayers = cartManifest?.minPlayers ?? cartManifest?.multiplayer?.minPlayers ?? 2;
-  const supportsSolo = cartManifest?.supportsSolo ?? cartManifest?.multiplayer?.supportsSolo ?? false;
-  const hasMultiplayer = cartManifest?.hasMultiplayer === true || cartManifest?.enabled === true || !!cartManifest?.multiplayer;
+  const maxPlayers = cartManifest?.multiplayer?.maxPlayers ?? 6;
+  const minPlayers = cartManifest?.multiplayer?.minPlayers ?? 2;
+  const supportsSolo = cartManifest?.multiplayer?.supportsSolo ?? false;
+  const hasMultiplayer = cartManifest?.multiplayer?.enabled === true || !!cartManifest?.multiplayer;
   
   // Debug: Log manifest state (commented out to reduce console spam)
   // useEffect(() => {

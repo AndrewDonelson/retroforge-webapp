@@ -21,7 +21,7 @@ if (!CONVEX_URL) {
 }
 
 async function syncCarts() {
-  const client = new ConvexHttpClient(CONVEX_URL)
+  const client = new ConvexHttpClient(CONVEX_URL!)
   
   try {
     // Note: This requires the mutation to be callable without auth

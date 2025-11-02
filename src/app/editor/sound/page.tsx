@@ -93,13 +93,25 @@ function SoundEditorPageInner() {
 
   const handleEditSFX = (name: string) => {
     const sfxDef = sfx[name]
-    setEditingSFX({ name, ...sfxDef })
+    setEditingSFX({ 
+      name, 
+      type: sfxDef.type || 'sine',
+      freq: sfxDef.freq ?? 440,
+      duration: sfxDef.duration ?? 0.1,
+      gain: sfxDef.gain ?? 0.3
+    })
     setSelectedSFX(name)
   }
 
   const handleSaveSFX = () => {
     if (!editingSFX) return
-    const { name, ...def } = editingSFX
+    const { name, type, freq, duration, gain } = editingSFX
+    const def = {
+      type: type as 'sine' | 'noise' | 'thrust' | 'stopall',
+      freq,
+      duration,
+      gain,
+    }
     const updated = { ...sfx, [name]: def }
     setSFX(updated)
     updateSFX(updated)

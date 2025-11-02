@@ -1,11 +1,11 @@
 "use client"
 
-import Link from 'next/link'
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { HeroSlider } from '@/components/landing/HeroSlider'
 
 export default function HomePage() {
-  // Fetch community statistics
+  // Fetch community statistics (optional, won't break if fails)
   const stats = useQuery(api.stats.getStats) ?? {
     games_created: 0,
     active_devs: 0,
@@ -14,189 +14,103 @@ export default function HomePage() {
     total_matches: 0,
     last_updated: Date.now(),
   }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Shared header lives in layout */}
+    <div className="min-h-screen bg-gray-900">
+      {/* Fullscreen Hero Slider */}
+      <HeroSlider />
 
-      {/* Hero Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center">
-          <h1 className="text-4xl md:text-6xl font-pixel text-white mb-6">
-            Forge Your
-            <span className="text-retro-400 block">Retro Dreams</span>
-          </h1>
-          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            A modern fantasy console for creating retro-style games with the creative constraints 
-            that encourage finished projects while offering more capability than traditional 8-bit consoles.
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link 
-              href="/editor" 
-              className="btn-retro text-lg px-8 py-4 animate-pixel-glow"
-            >
-              Start Creating
-            </Link>
-            <Link 
-              href="/browser" 
-              className="btn-retro-secondary text-lg px-8 py-4"
-            >
-              Browse Games
-            </Link>
+      {/* Stats Section - Below the slider */}
+      <section className="py-16 bg-gray-900 border-t border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-pixel text-white mb-8 text-center">Community Stats</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-4xl font-pixel text-retro-400">{stats.games_created.toLocaleString()}</div>
+              <div className="text-gray-400 mt-2">Games Created</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-pixel text-retro-400">{stats.active_devs.toLocaleString()}</div>
+              <div className="text-gray-400 mt-2">Active Developers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-pixel text-retro-400">{stats.games_played.toLocaleString()}</div>
+              <div className="text-gray-400 mt-2">Games Played</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-pixel text-retro-400">100%</div>
+              <div className="text-gray-400 mt-2">Open Source</div>
+            </div>
           </div>
+        </div>
+      </section>
 
-          {/* Documentation Links */}
-          <div className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-16">
-            <Link 
-              href="/docs/guide"
-              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="text-retro-400 text-2xl mb-2">📖</div>
-                  <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
-                    Developer Guide
-                  </h3>
-                  <p className="text-gray-300 text-sm">
-                    Complete guide: what, how, and why. Learn to build RetroForge carts like an expert.
-                  </p>
-                </div>
-                <span className="text-retro-400 text-xl group-hover:translate-x-1 transition-transform">→</span>
-              </div>
-            </Link>
-            
-            <Link 
-              href="/docs/api-reference"
-              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="text-retro-400 text-2xl mb-2">📚</div>
-                  <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
-                    API Reference
-                  </h3>
-                  <p className="text-gray-300 text-sm">
-                    Complete documentation for all RetroForge Engine Lua functions and APIs
-                  </p>
-                </div>
-                <span className="text-retro-400 text-xl group-hover:translate-x-1 transition-transform">→</span>
-              </div>
-            </Link>
-            
-            <Link 
-              href="/docs/comparison"
-              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="text-retro-400 text-2xl mb-2">⚖️</div>
-                  <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
-                    PICO-8 Comparison
-                  </h3>
-                  <p className="text-gray-300 text-sm">
-                    Feature-by-feature comparison between PICO-8 and RetroForge Engine
-                  </p>
-                </div>
-                <span className="text-retro-400 text-xl group-hover:translate-x-1 transition-transform">→</span>
-              </div>
-            </Link>
-          </div>
-
-          {/* Engine GitHub CTA */}
-          <div className="mx-auto max-w-3xl mb-16">
+      {/* Quick Links Section */}
+      <section className="py-16 bg-gray-800/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-3 gap-6">
             <a
-              href="https://github.com/AndrewDonelson/retroforge-engine"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block card-retro p-4 hover:border-retro-500 transition-colors"
+              href="/docs/guide"
+              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group text-center"
             >
-              <div className="flex items-center justify-between">
-                <div className="text-left">
-                  <div className="text-sm text-gray-300">Open Source Engine</div>
-                  <div className="text-lg font-pixel text-retro-400">retroforge-engine on GitHub</div>
-                </div>
-                <span className="text-retro-400">↗</span>
-              </div>
+              <div className="text-retro-400 text-4xl mb-4">📖</div>
+              <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
+                Developer Guide
+              </h3>
+              <p className="text-gray-300 text-sm">
+                Complete guide: what, how, and why. Learn to build RetroForge carts.
+              </p>
+            </a>
+            
+            <a
+              href="/docs/api-reference"
+              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group text-center"
+            >
+              <div className="text-retro-400 text-4xl mb-4">📚</div>
+              <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
+                API Reference
+              </h3>
+              <p className="text-gray-300 text-sm">
+                Complete documentation for all RetroForge Engine Lua functions and APIs
+              </p>
+            </a>
+            
+            <a
+              href="/docs/comparison"
+              className="card-retro p-6 hover:border-retro-500 transition-all hover:scale-105 group text-center"
+            >
+              <div className="text-retro-400 text-4xl mb-4">⚖️</div>
+              <h3 className="text-xl font-pixel text-white mb-2 group-hover:text-retro-400 transition-colors">
+                PICO-8 Comparison
+              </h3>
+              <p className="text-gray-300 text-sm">
+                Feature-by-feature comparison between PICO-8 and RetroForge Engine
+              </p>
             </a>
           </div>
         </div>
+      </section>
 
-        {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-16">
-          <div className="card-retro p-6">
-            <div className="text-retro-400 text-2xl mb-4">🎮</div>
-            <h3 className="text-xl font-pixel mb-3">Complete Development Environment</h3>
-            <p className="text-gray-300">
-              Code editor, sprite editor, map editor, and audio editor - all in your browser.
-            </p>
-          </div>
-          
-          <div className="card-retro p-6">
-            <div className="text-retro-400 text-2xl mb-4">⚡</div>
-            <h3 className="text-xl font-pixel mb-3">Instant Preview</h3>
-            <p className="text-gray-300">
-              See your changes in real-time with the integrated WASM engine preview.
-            </p>
-          </div>
-          
-          <div className="card-retro p-6">
-            <div className="text-retro-400 text-2xl mb-4">🔒</div>
-            <h3 className="text-xl font-pixel mb-3">Privacy First</h3>
-            <p className="text-gray-300">
-              All your projects are stored locally. No accounts, no cloud, no data collection.
-            </p>
-          </div>
-          
-          <div className="card-retro p-6">
-            <div className="text-retro-400 text-2xl mb-4">🎨</div>
-            <h3 className="text-xl font-pixel mb-3">Retro Aesthetic</h3>
-            <p className="text-gray-300">
-              480×270 resolution, 50-color palettes, and authentic pixel-perfect rendering.
-            </p>
-          </div>
-          
-          <div className="card-retro p-6">
-            <div className="text-retro-400 text-2xl mb-4">🔧</div>
-            <h3 className="text-xl font-pixel mb-3">Modern Tools</h3>
-            <p className="text-gray-300">
-              Node system, Box2D physics, and Lua scripting with a Godot-inspired API.
-            </p>
-          </div>
-          
-          <div className="card-retro p-6">
-            <div className="text-retro-400 text-2xl mb-4">🌐</div>
-            <h3 className="text-xl font-pixel mb-3">Cross-Platform</h3>
-            <p className="text-gray-300">
-              Play and create on desktop, mobile, and web. Export to multiple platforms.
-            </p>
-          </div>
+      {/* Engine GitHub CTA */}
+      <section className="py-16 bg-gray-900">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <a
+            href="https://github.com/AndrewDonelson/retroforge-engine"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block card-retro p-6 hover:border-retro-500 transition-all hover:scale-105"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-400 mb-2">Open Source Engine</div>
+                <div className="text-2xl font-pixel text-retro-400">retroforge-engine on GitHub</div>
+                <div className="text-sm text-gray-400 mt-2">View source code, contribute, or report issues</div>
+              </div>
+              <span className="text-retro-400 text-2xl">↗</span>
+            </div>
+          </a>
         </div>
-
-        {/* Stats Section */}
-        <div className="mt-16 text-center">
-          <h2 className="text-3xl font-pixel text-white mb-8">Community Stats</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div>
-              <div className="text-4xl font-pixel text-retro-400">{stats.games_created.toLocaleString()}</div>
-              <div className="text-gray-400">Games Created</div>
-            </div>
-            <div>
-              <div className="text-4xl font-pixel text-retro-400">{stats.active_devs.toLocaleString()}</div>
-              <div className="text-gray-400">Active Developers</div>
-            </div>
-            <div>
-              <div className="text-4xl font-pixel text-retro-400">{stats.games_played.toLocaleString()}</div>
-              <div className="text-gray-400">Games Played</div>
-            </div>
-            <div>
-              <div className="text-4xl font-pixel text-retro-400">100%</div>
-              <div className="text-gray-400">Open Source</div>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Shared footer lives in layout */}
+      </section>
     </div>
   )
 }

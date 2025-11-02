@@ -57,7 +57,12 @@ export function ForkButton({ cartId, originalCartName, cartFile, onForked }: For
       // Load cart data from file
       const res = await fetch(cartFile)
       const buf = await res.arrayBuffer()
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+      const uint8Array = new Uint8Array(buf)
+      let binaryString = ''
+      for (let i = 0; i < uint8Array.length; i++) {
+        binaryString += String.fromCharCode(uint8Array[i])
+      }
+      const base64 = btoa(binaryString)
       
       result = await createCartMutation({
         ownerId: user.userId,

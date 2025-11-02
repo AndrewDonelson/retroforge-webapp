@@ -346,9 +346,9 @@ export const syncExampleCarts = action({
 
         // Convert Map to object for serialization
         const assetsObj: Record<string, string> = {}
-        for (const [path, content] of assets.entries()) {
+        assets.forEach((content, path) => {
           assetsObj[path] = content
-        }
+        })
 
         // Store all cart files using internal mutation
         await ctx.runMutation(

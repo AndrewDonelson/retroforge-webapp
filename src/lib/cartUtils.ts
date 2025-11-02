@@ -250,7 +250,10 @@ export async function packCart(manifest: CartManifest, assets: CartAssets, sfx?:
   }
 
   const blob = await zip.generateAsync({ type: 'uint8array' })
-  const binaryString = String.fromCharCode(...blob)
+  let binaryString = ''
+  for (let i = 0; i < blob.length; i++) {
+    binaryString += String.fromCharCode(blob[i])
+  }
   return btoa(binaryString)
 }
 

@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useAction, useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function InitPage() {
+  const { user, isAuthenticated, isLoading } = useAuth()
   const [isSyncing, setIsSyncing] = useState(false)
   const [result, setResult] = useState<{
     created: number
@@ -16,6 +18,10 @@ export default function InitPage() {
 
   const syncExampleCarts = useAction(api.syncExampleCarts.syncExampleCarts)
   const updateStats = useMutation(api.stats.updateStats)
+  const createRetroForgeTeam = useMutation(api.createRetroForgeTeam.createRetroForgeTeam)
+  
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false)
+  const [teamResult, setTeamResult] = useState<string | null>(null)
 
   const handleSync = async () => {
     setIsSyncing(true)
@@ -84,6 +90,56 @@ export default function InitPage() {
     }
   }
 
+  const handleCreateRetroForgeTeam = async () => {
+    setIsCreatingTeam(true)
+    setTeamResult(null)
+
+    try {
+      const result = await createRetroForgeTeam({})
+      if (result.success) {
+        setTeamResult(`✅ ${result.message} (User ID: ${result.userId})`)
+      } else {
+        setTeamResult(`ℹ️ ${result.message} (User ID: ${result.userId})`)
+      }
+    } catch (error: any) {
+      setTeamResult(`❌ Error: ${error.message || 'Unknown error'}`)
+    } finally {
+      setIsCreatingTeam(false)
+    }
+  }
+
+  // Check authentication and admin status
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">Access Denied</h1>
+          <p className="text-gray-300 text-lg">You must be logged in to access this page.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user.isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white p-8 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold mb-4">Access Denied</h1>
+          <p className="text-gray-300 text-lg">This page is restricted to administrators only.</p>
+          <p className="text-gray-400 text-sm mt-2">You are logged in as: <span className="font-mono">{user.username}</span></p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="max-w-4xl mx-auto">
@@ -104,7 +160,7 @@ export default function InitPage() {
           </ul>
         </div>
 
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 flex-wrap">
           <button
             onClick={handleSync}
             disabled={isSyncing}
@@ -134,7 +190,38 @@ export default function InitPage() {
           >
             {isUpdatingStats ? 'Updating...' : 'Force Update Stats'}
           </button>
+
+          <button
+            onClick={handleCreateRetroForgeTeam}
+            disabled={isCreatingTeam}
+            className={`
+              px-6 py-3 rounded font-semibold
+              ${isCreatingTeam 
+                ? 'bg-gray-600 cursor-not-allowed' 
+                : 'bg-purple-600 hover:bg-purple-500'
+              }
+              transition-colors
+            `}
+          >
+            {isCreatingTeam ? 'Creating...' : 'Create RetroForge Team User'}
+          </button>
         </div>
+
+        {teamResult && (
+          <div className={`mb-6 p-4 rounded-lg ${
+            teamResult.startsWith('✅') ? 'bg-green-900/50' : 
+            teamResult.startsWith('ℹ️') ? 'bg-blue-900/50' : 
+            'bg-red-900/50'
+          }`}>
+            <p className={
+              teamResult.startsWith('✅') ? 'text-green-300' : 
+              teamResult.startsWith('ℹ️') ? 'text-blue-300' : 
+              'text-red-300'
+            }>
+              {teamResult}
+            </p>
+          </div>
+        )}
 
         {statsResult && (
           <div className={`mb-6 p-4 rounded-lg ${

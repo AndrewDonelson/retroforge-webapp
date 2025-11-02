@@ -150,6 +150,22 @@ export default defineSchema({
     total_matches: v.optional(v.number()), // Total number of multiplayer matches completed
     last_updated: v.number(), // Timestamp of last update
   }),
+  // Admin users - tracks which users have admin privileges
+  admins: defineTable({
+    userId: v.id('users'),
+    assignedBy: v.optional(v.id('users')),
+    assignedAt: v.optional(v.number()),
+  })
+    .index('by_userId', ['userId']),
+  // User follows - tracks which users follow which other users
+  userFollows: defineTable({
+    followerId: v.id('users'), // User who is following
+    followingId: v.id('users'), // User being followed
+    createdAt: v.number(),
+  })
+    .index('by_follower', ['followerId'])
+    .index('by_following', ['followingId'])
+    .index('by_follower_following', ['followerId', 'followingId']), // Unique constraint: one follow per follower-following pair
 })
 
 

@@ -107,11 +107,25 @@ export const authenticate = mutation({
     const now = Date.now()
     await ctx.db.patch(user._id, { lastActiveAt: now })
 
+    // Check if user is an admin
+    let isAdmin = false
+    try {
+      const admin = await ctx.db
+        .query('admins')
+        .withIndex('by_userId', (q) => q.eq('userId', user._id))
+        .first()
+      isAdmin = !!admin
+    } catch (error) {
+      // If admins table doesn't exist yet or query fails, default to false
+      isAdmin = false
+    }
+
     return {
       userId: user._id,
       username: user.username,
       createdAt: user.createdAt,
       hasAcknowledgedRecoveryKey: user.hasAcknowledgedRecoveryKey ?? false,
+      isAdmin,
     }
   },
 })
@@ -163,12 +177,26 @@ export const loginWithRecoveryKey = mutation({
 
     await ctx.db.patch(user._id, updates)
 
+    // Check if user is an admin
+    let isAdmin = false
+    try {
+      const admin = await ctx.db
+        .query('admins')
+        .withIndex('by_userId', (q) => q.eq('userId', user._id))
+        .first()
+      isAdmin = !!admin
+    } catch (error) {
+      // If admins table doesn't exist yet or query fails, default to false
+      isAdmin = false
+    }
+
     // Return user info - client will use new keypair
     return {
       userId: user._id,
       username: user.username,
       createdAt: user.createdAt,
       hasAcknowledgedRecoveryKey: user.hasAcknowledgedRecoveryKey ?? false,
+      isAdmin,
     }
   },
 })
@@ -188,11 +216,25 @@ export const getCurrentUser = query({
       return null
     }
 
+    // Check if user is an admin
+    let isAdmin = false
+    try {
+      const admin = await ctx.db
+        .query('admins')
+        .withIndex('by_userId', (q) => q.eq('userId', user._id))
+        .first()
+      isAdmin = !!admin
+    } catch (error) {
+      // If admins table doesn't exist yet or query fails, default to false
+      isAdmin = false
+    }
+
     return {
       userId: user._id,
       username: user.username,
       createdAt: user.createdAt,
       hasAcknowledgedRecoveryKey: user.hasAcknowledgedRecoveryKey ?? false,
+      isAdmin,
     }
   },
 })

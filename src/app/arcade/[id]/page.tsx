@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
@@ -11,7 +12,6 @@ import { LobbyBrowserModal } from '@/components/multiplayer/LobbyBrowserModal';
 import { CreateLobbyModal } from '@/components/multiplayer/CreateLobbyModal';
 import { GameLobbyModal } from '@/components/multiplayer/GameLobbyModal';
 import { LeaderboardModal } from '@/components/multiplayer/LeaderboardModal';
-import { ProfileModal } from '@/components/multiplayer/ProfileModal';
 
 type CartDef = { id: string; name: string; file: string | undefined; desc: string };
 
@@ -75,7 +75,6 @@ export default function ArcadeDetailPage() {
   const [showCreateLobby, setShowCreateLobby] = useState(false);
   const [currentLobbyId, setCurrentLobbyId] = useState<Id<'lobbies'> | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   
   // Parse cart manifest for multiplayer info
   const [cartManifest, setCartManifest] = useState<{
@@ -297,15 +296,66 @@ export default function ArcadeDetailPage() {
     let buf: Uint8Array;
     if (dbCart?.cartData) {
       // Load from base64 cart data in database
-      const binaryString = atob(dbCart.cartData);
-      buf = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        buf[i] = binaryString.charCodeAt(i);
+      try {
+        const binaryString = atob(dbCart.cartData);
+        buf = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          buf[i] = binaryString.charCodeAt(i);
+        }
+        console.log('[Arcade] Loaded cart from database, size:', buf.length);
+        
+        // Unpack and inspect cart contents
+        try {
+          const JSZip = (await import('jszip')).default;
+          const zip = await JSZip.loadAsync(buf);
+          const manifestEntry = zip.file('manifest.json');
+          if (manifestEntry) {
+            const manifestText = await manifestEntry.async('text');
+            const manifest = JSON.parse(manifestText);
+            console.log('[Arcade] Cart manifest:', JSON.stringify(manifest, null, 2));
+            
+            // Handle new manifest structure: extract from fullManifest if present
+            const actualManifest = manifest.fullManifest || manifest;
+            const entryPoint = actualManifest.entry || actualManifest.main || manifest.entry || manifest.main || 'main.lua';
+            
+            console.log('[Arcade] Using manifest structure:', manifest.fullManifest ? 'new (fullManifest)' : 'old (flat)');
+            console.log('[Arcade] Cart entry point:', entryPoint);
+            console.log('[Arcade] Actual manifest fields:', {
+              title: actualManifest.title,
+              author: actualManifest.author,
+              entry: actualManifest.entry,
+            });
+            
+            // List all files in the cart
+            const fileNames = Object.keys(zip.files).filter(name => !zip.files[name].dir);
+            console.log('[Arcade] Cart files:', fileNames);
+            
+            // Check if entry point file exists
+            const entryPath = `assets/${entryPoint}`;
+            const entryFile = zip.file(entryPath);
+            if (entryFile) {
+              console.log('[Arcade] Entry point file found:', entryPath);
+            } else {
+              console.error('[Arcade] Entry point file NOT found:', entryPath);
+              console.log('[Arcade] Available asset files:', fileNames.filter(f => f.startsWith('assets/')));
+            }
+          } else {
+            console.error('[Arcade] manifest.json not found in cart ZIP');
+          }
+        } catch (unpackError) {
+          console.error('[Arcade] Failed to unpack cart for inspection:', unpackError);
+        }
+      } catch (error) {
+        console.error('[Arcade] Failed to decode cartData:', error);
+        setRunning(false);
+        runningRef.current = false;
+        return;
       }
     } else if (cart.file) {
       // Load from file URL (for carts stored in /public/carts/)
       const res = await fetch(cart.file);
       buf = new Uint8Array(await res.arrayBuffer());
+      console.log('[Arcade] Loaded cart from file, size:', buf.length);
     } else {
       console.error('No cart data available');
       setRunning(false);
@@ -316,7 +366,7 @@ export default function ArcadeDetailPage() {
     // Load cart and check for errors
     const loadError = loadCart(buf);
     if (loadError) {
-      console.error('Failed to load cart:', loadError);
+      console.error('Failed to load cart:', loadError, 'Buffer size:', buf.length);
       setRunning(false);
       runningRef.current = false;
       return;
@@ -484,12 +534,12 @@ export default function ArcadeDetailPage() {
               >
                 Leaderboards
               </button>
-              <button
-                onClick={() => setShowProfile(true)}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded"
+              <Link
+                href={`/user/${dbCart.author}`}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 rounded inline-block text-center"
               >
-                Profile
-              </button>
+                Owner Profile
+              </Link>
             </>
           )}
           
@@ -589,11 +639,6 @@ export default function ArcadeDetailPage() {
         />
       )}
 
-      {showProfile && (
-        <ProfileModal
-          onClose={() => setShowProfile(false)}
-        />
-      )}
     </div>
   );
 }

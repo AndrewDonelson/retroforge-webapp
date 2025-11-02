@@ -1,7 +1,8 @@
 "use client"
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useAuth } from '@/contexts/AuthContext'
@@ -54,11 +55,23 @@ const GENRES: Genre[] = [
   'Other',
 ]
 
-export default function BrowserPage() {
+function BrowserPageInner() {
   const { user, isAuthenticated } = useAuth()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  // Initialize state from URL params if present
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([])
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortKey>('popular')
+
+  // Read author from URL params
+  useEffect(() => {
+    const authorParam = searchParams?.get('author')
+    if (authorParam) {
+      setSearch(authorParam)
+    }
+  }, [searchParams])
 
   // Get all public carts from database (only show published carts)
   const dbCarts = useQuery(api.carts.list, { includePublicOnly: true })
@@ -215,16 +228,6 @@ export default function BrowserPage() {
             <article
               className="card-retro overflow-hidden bg-gray-850 hover:border-retro-500 transition-colors"
             >
-              <div className="relative w-full aspect-square bg-gray-900">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={cart.imageUrl}
-                  alt={cart.title}
-                  className="absolute inset-0 w-full h-full object-cover pixel-container"
-                  width={256}
-                  height={256}
-                />
-              </div>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-white font-semibold leading-snug truncate">
@@ -234,7 +237,20 @@ export default function BrowserPage() {
                     {cart.genre}
                   </span>
                 </div>
-                <div className="text-xs text-gray-400 mt-1 truncate">by {cart.author}</div>
+                <div className="text-xs text-gray-400 mt-1 truncate">
+                  by{' '}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setSearch(cart.author)
+                      router.push(`/browser?author=${encodeURIComponent(cart.author)}`)
+                    }}
+                    className="hover:text-retro-400 hover:underline transition-colors bg-transparent border-none p-0 cursor-pointer text-inherit"
+                  >
+                    {cart.author}
+                  </button>
+                </div>
                 <p className="text-sm text-gray-300 mt-2 line-clamp-3 min-h-[3.6rem]">
                   {cart.description}
                 </p>
@@ -260,5 +276,17 @@ export default function BrowserPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function BrowserPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <p className="text-gray-400">Loading...</p>
+      </div>
+    }>
+      <BrowserPageInner />
+    </Suspense>
   )
 }

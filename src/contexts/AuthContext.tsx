@@ -20,6 +20,7 @@ interface AuthContextType {
     username: string
     publicKey: string
     hasAcknowledgedRecoveryKey: boolean
+    isAdmin: boolean
   } | null
   isAuthenticated: boolean
   isLoading: boolean
@@ -79,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username: currentUser.username,
         publicKey: keys.publicKey,
         hasAcknowledgedRecoveryKey: currentUser.hasAcknowledgedRecoveryKey ?? false,
+        isAdmin: currentUser.isAdmin ?? false,
       })
       setIsLoading(false)
     } else if (currentUser === null && keys.publicKey) {
@@ -117,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           username: result.username,
           publicKey,
           hasAcknowledgedRecoveryKey: result.hasAcknowledgedRecoveryKey ?? false,
+          isAdmin: result.isAdmin ?? false,
         })
       }
     } catch (error) {
@@ -177,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           username: result.username,
           publicKey,
           hasAcknowledgedRecoveryKey: result.hasAcknowledgedRecoveryKey ?? false,
+          isAdmin: result.isAdmin ?? false,
         })
       }
     } catch (error) {
@@ -226,6 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username: userInfo.username,
         publicKey,
         hasAcknowledgedRecoveryKey: userInfo.hasAcknowledgedRecoveryKey ?? false,
+        isAdmin: userInfo.isAdmin ?? false,
       })
     } catch (error) {
       console.error('Login with recovery key failed:', error)

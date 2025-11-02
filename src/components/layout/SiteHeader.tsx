@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import Logo from '@/components/common/Logo'
 import { LoginButton } from '@/components/auth/LoginButton'
+import { useAuth } from '@/contexts/AuthContext'
 
 type LabelMode = 'icons' | 'icons+text'
 
@@ -35,6 +36,7 @@ function IconFolder() {
 }
 
 export default function SiteHeader() {
+  const { isAuthenticated } = useAuth()
   const [labelMode, setLabelMode] = useState<LabelMode>('icons+text')
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -100,14 +102,16 @@ export default function SiteHeader() {
               <IconPencil />
               {labelMode === 'icons+text' && <span className="hidden xs:inline">Create</span>}
             </Link>
-            <Link
-              href="/projects"
-              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-700/50 text-gray-200"
-              aria-label="My Projects"
-            >
-              <IconFolder />
-              {labelMode === 'icons+text' && <span className="hidden xs:inline">My Projects</span>}
-            </Link>
+            {isAuthenticated && (
+              <Link
+                href="/projects"
+                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-700/50 text-gray-200"
+                aria-label="My Projects"
+              >
+                <IconFolder />
+                {labelMode === 'icons+text' && <span className="hidden xs:inline">My Projects</span>}
+              </Link>
+            )}
 
             <button
               type="button"

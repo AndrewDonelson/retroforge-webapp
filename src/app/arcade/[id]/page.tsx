@@ -15,6 +15,7 @@ import { LeaderboardModal } from '@/components/multiplayer/LeaderboardModal';
 import Controller from '@/components/Controller/Controller';
 import KeyboardMappings from '@/components/Controller/KeyboardMappings';
 import { useController, isMobilePortrait } from '@/lib/useController';
+import { ShareButton } from '@/components/common/ShareButton';
 
 type CartDef = { id: string; name: string; file: string | undefined; desc: string };
 
@@ -584,7 +585,7 @@ export default function ArcadeDetailPage() {
               <div className="bg-gray-800 rounded-xl p-6 shadow-lg space-y-4">
                 <h2 className="text-lg font-semibold text-white mb-4">Actions</h2>
                 
-                {/* Like and Favorite */}
+                {/* Like, Favorite, and Share */}
                 {isAuthenticated && user && isConvexId && dbCart && (
                   <div className="flex gap-3">
                     <button
@@ -622,6 +623,12 @@ export default function ArcadeDetailPage() {
                     >
                       🔖
                     </button>
+                    <ShareButton
+                      url={typeof window !== 'undefined' ? window.location.href : ''}
+                      title={cart.name}
+                      text={`Check out ${cart.name} by ${dbCart?.author || 'Unknown'} on RetroForge!`}
+                      className="bg-cyan-600 hover:bg-cyan-500"
+                    />
                   </div>
                 )}
 

@@ -4,6 +4,9 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
+import Controller from '@/components/Controller/Controller';
+import { useController, isMobilePortrait } from '@/lib/useController';
+import { setupInput } from '@/lib/wasmInterface';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +20,8 @@ declare global {
     rf_run_frame?: () => unknown;
     rf_get_pixels?: (dst: Uint8Array) => unknown;
     rf_set_btn?: (idx: number, down: boolean) => unknown;
+    rf_set_button?: (name: string, down: boolean) => unknown;
+    rf_set_shift?: (down: boolean) => unknown;
   }
 }
 
@@ -41,6 +46,31 @@ export default function ArcadePage() {
   const rafRef = useRef<number | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
   const [cart, setCart] = useState<Cart | null>(null);
+  const [showController, setShowController] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Controller integration
+  const { handleButtonPress, handleButtonRelease } = useController();
+  
+  // Toggle fullscreen when game starts
+  useEffect(() => {
+    if (running && !isFullscreen && showController) {
+      setIsFullscreen(true);
+    } else if (!running) {
+      setIsFullscreen(false);
+    }
+  }, [running, showController, isFullscreen]);
+  
+  // Exit fullscreen on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
 
   // Set first cart when carts are loaded
   useEffect(() => {
@@ -121,47 +151,21 @@ export default function ArcadePage() {
     }
   }
 
+  // Detect mobile/tablet portrait mode
   useEffect(() => {
-    if (!ready) return; // Wait for WASM to load
-    
-    // Wait a bit to ensure WASM functions are actually on window
-    const setupInput = () => {
-      if (!window.rf_set_btn) {
-        setTimeout(setupInput, 100);
-        return;
-      }
-      
-      function onKey(e: KeyboardEvent, down: boolean) {
-        if (!window.rf_set_btn) return;
-        const map: Record<string, number> = {
-          ArrowLeft: 0,
-          ArrowRight: 1,
-          ArrowUp: 2,
-          ArrowDown: 3,
-          KeyZ: 4,
-          KeyX: 5,
-          Enter: 5,
-          Escape: 3, // ESC maps to button 3 (Down) for pause
-        };
-        const idx = map[e.code];
-        if (idx !== undefined) {
-          e.preventDefault();
-          window.rf_set_btn!(idx, down);
-        }
-      }
-      const kd = (e: KeyboardEvent) => onKey(e, true);
-      const ku = (e: KeyboardEvent) => onKey(e, false);
-      window.addEventListener("keydown", kd, true);
-      window.addEventListener("keyup", ku, true);
-      
-      return () => {
-        window.removeEventListener("keydown", kd, true);
-        window.removeEventListener("keyup", ku, true);
-      };
+    const checkMobile = () => {
+      setShowController(isMobilePortrait());
     };
-    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Setup keyboard input (uses new 11-button system)
+  useEffect(() => {
+    if (!ready) return;
     const cleanup = setupInput();
-    return cleanup;
+    return cleanup || undefined;
   }, [ready]);
 
   async function start() {
@@ -198,9 +202,8 @@ export default function ArcadePage() {
     const ctx = cvs.getContext("2d")!;
     const width = 480, height = 270;
     cvs.width = width; cvs.height = height;
-    const s = Math.max(1, scale|0);
-    cvs.style.width = `${width*s}px`;
-    cvs.style.height = `${height*s}px`;
+    // Don't set explicit canvas style dimensions - let CSS control the display size
+    // The canvas internal resolution is 480x270, but CSS will scale it to fit the container
     // Pre-allocate ImageData once and reuse it
     const img = ctx.createImageData(width, height);
     // Pre-allocate buffer for pixel transfer (reuse to avoid allocations)
@@ -233,9 +236,12 @@ export default function ArcadePage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <h1 className="text-2xl font-semibold mb-4">Arcade</h1>
-      <div className="flex gap-3 items-center mb-4">
+    <div className={`max-w-6xl mx-auto p-4 ${showController ? 'flex flex-col' : ''} ${isFullscreen ? 'fixed inset-0 w-screen h-screen max-w-full max-h-full z-[9998] overflow-hidden bg-gray-900 flex flex-col' : ''}`}>
+      {!showController && !isFullscreen && (
+        <h1 className="text-2xl font-semibold mb-4">Arcade</h1>
+      )}
+      {!isFullscreen && (
+        <div className={`flex gap-3 items-center mb-4 ${showController ? 'hidden' : ''}`}>
         <select
           value={scale}
           onChange={(e)=>setScale(parseInt(e.target.value)||1)
@@ -275,9 +281,277 @@ export default function ArcadePage() {
           </button>
         )}
       </div>
-      <div className="rounded border border-gray-700 bg-black inline-block">
-        <canvas ref={canvasRef} />
+      )}
+      {/* Gameboy-style container */}
+      <div 
+        className={`
+          gameboy-container
+          ${showController ? 'gameboy-container-mobile' : ''}
+          ${isFullscreen ? 'gameboy-fullscreen flex-1' : ''}
+        `}
+      >
+        {/* Game Display */}
+        <div className="gameboy-screen-container">
+          <div className="gameboy-screen-border">
+            <div className="gameboy-screen">
+              <canvas 
+                ref={canvasRef} 
+                className="gameboy-canvas outline-none"
+                style={{ outline: 'none' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Logo - under display */}
+        <div className="gameboy-logo-container">
+          <img src="/logo.svg" alt="RetroForge" className="gameboy-logo" />
+        </div>
+
+        {/* Controller - always mounted for keyboard input, but only visible on mobile */}
+        <div className={`gameboy-controller-container ${showController ? '' : 'hidden'}`}>
+          <Controller
+            enabled={running}
+            onButtonPress={handleButtonPress}
+            onButtonRelease={handleButtonRelease}
+            className="gameboy-controller"
+          />
+        </div>
+        
+        {/* Exit fullscreen button */}
+        {isFullscreen && (
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="gameboy-exit-fullscreen"
+            aria-label="Exit fullscreen"
+          >
+            ✕
+          </button>
+        )}
       </div>
+      
+      {/* Gameboy Styles */}
+      <style jsx global>{`
+        .gameboy-container {
+          position: relative;
+          margin: 0 auto;
+          max-width: 100%;
+          background: #1f2937; /* bg-gray-800 to match card theme */
+          border-radius: 0.75rem; /* rounded-xl to match cards */
+          padding: 1rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg to match cards */
+        }
+
+        .gameboy-container-mobile {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .gameboy-fullscreen {
+          /* Revert to normal container styling - fullscreen is handled by parent */
+          position: relative;
+          border-radius: 0.75rem; /* rounded-xl to match cards */
+          margin: 0 auto;
+          padding: 1.5rem;
+          background: #1f2937; /* bg-gray-800 to match card theme */
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg to match cards */
+          width: 100%;
+          max-width: 100%;
+          height: 100%;
+        }
+
+        .gameboy-screen-container {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          order: 1;
+          flex-shrink: 0;
+          margin-top: 0.5rem;
+          padding: 0;
+        }
+        
+        .gameboy-fullscreen .gameboy-screen-container {
+          flex: 0 0 auto;
+          margin-top: 0.5rem;
+          max-width: 100%;
+          padding: 0;
+        }
+
+        .gameboy-screen-border {
+          background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+          border-radius: 0.75rem;
+          padding: 0.125rem;
+          box-shadow: 
+            inset 2px 2px 4px rgba(255, 255, 255, 0.15),
+            inset -2px -2px 4px rgba(0, 0, 0, 0.7),
+            inset 1px 1px 2px rgba(255, 255, 255, 0.1),
+            inset -1px -1px 2px rgba(0, 0, 0, 0.5),
+            0 2px 4px rgba(0, 0, 0, 0.3);
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          max-width: 100%;
+          margin: 0 auto;
+        }
+        
+        .gameboy-fullscreen .gameboy-screen-border {
+          padding: 0.075rem;
+          width: 100%;
+          max-width: 100%;
+          margin: 0.5rem auto 0 auto;
+        }
+
+        .gameboy-screen {
+          background: #000;
+          border-radius: 0.5rem;
+          overflow: hidden;
+          position: relative;
+          /* Inner bezel: top/left darker (shadow), bottom/right lighter (highlight) */
+          border-top: 1px solid rgba(0, 0, 0, 0.6);
+          border-left: 1px solid rgba(0, 0, 0, 0.6);
+          border-bottom: 1px solid rgba(150, 150, 150, 0.4);
+          border-right: 1px solid rgba(150, 150, 150, 0.4);
+          box-shadow: 
+            inset 0 0 20px rgba(0, 0, 0, 0.8),
+            inset 1px 1px 2px rgba(0, 0, 0, 0.8),
+            inset -1px -1px 2px rgba(200, 200, 200, 0.3);
+          aspect-ratio: 16 / 9;
+          width: 100%;
+          max-width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .gameboy-canvas {
+          display: block;
+          width: 100%;
+          height: 100%;
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+          image-rendering: pixelated;
+          image-rendering: crisp-edges;
+        }
+
+        .gameboy-logo-container {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 1rem 0;
+          order: 2;
+        }
+
+        .gameboy-logo {
+          height: 48px;
+          width: auto;
+          opacity: 0.8;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        .gameboy-controller-container {
+          width: 100%;
+          order: 3;
+          display: flex;
+          justify-content: center;
+          align-items: flex-end;
+          padding-top: 1.5rem;
+          flex-shrink: 0;
+        }
+
+        .gameboy-controller {
+          width: 100%;
+          max-width: 100%;
+          padding: 0;
+        }
+        
+        .gameboy-controller .controller-container {
+          padding: 1rem;
+        }
+        
+        .gameboy-fullscreen .gameboy-controller-container {
+          flex: 0 0 auto;
+          justify-content: center;
+          align-items: flex-end;
+          margin-bottom: 0.5rem;
+          padding-top: 0;
+        }
+
+        .gameboy-exit-fullscreen {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: rgba(0, 0, 0, 0.6);
+          color: white;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          font-size: 1.5rem;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 10000;
+          transition: all 0.2s ease;
+        }
+
+        .gameboy-exit-fullscreen:hover {
+          background: rgba(0, 0, 0, 0.8);
+          border-color: rgba(255, 255, 255, 0.5);
+          transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+          .gameboy-container-mobile {
+            padding: 0.75rem;
+          }
+          
+          .gameboy-screen-border {
+            padding: 0.75rem;
+          }
+        }
+
+        @media (min-width: 769px) {
+          .gameboy-container:not(.gameboy-fullscreen) {
+            max-width: 600px;
+          }
+          
+          .gameboy-screen-container {
+            max-width: 480px;
+          }
+        }
+        
+        @media (max-height: 900px) {
+          .gameboy-fullscreen {
+            height: 95vh;
+            padding: 1rem;
+          }
+          
+          .gameboy-fullscreen .gameboy-screen-border {
+            padding: 0.8rem;
+          }
+        }
+        
+        @media (max-height: 700px) {
+          .gameboy-fullscreen {
+            padding: 0.75rem;
+          }
+          
+          .gameboy-fullscreen .gameboy-screen-border {
+            padding: 0.6rem;
+          }
+        }
+      `}</style>
     </div>
   );
 }

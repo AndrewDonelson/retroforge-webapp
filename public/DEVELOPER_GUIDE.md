@@ -259,9 +259,9 @@ Called **every frame** (60 times per second). Use for:
 ```lua
 function _UPDATE(dt)
   -- Move player
-  if rf.btn(0) then  -- Left
+  if rf.btn(4) then  -- LEFT (button 4)
     player.vx = -3
-  elseif rf.btn(1) then  -- Right
+  elseif rf.btn(5) then  -- RIGHT (button 5)
     player.vx = 3
   else
     player.vx = 0
@@ -323,35 +323,60 @@ rf.rectfill(100, 100, 150, 150, 7)  -- Color 7 from palette
 
 ### Input System
 
-8 standard buttons:
+RetroForge uses a **universal 11-button input system** that works consistently across desktop, mobile, and tablet platforms.
 
-```
-Buttons:
-  0 = Left
-  1 = Right
-  2 = Up
-  3 = Down
-  4 = Z (or O)
-  5 = X (or Cancel)
-  6-15 = Extended buttons
-```
+**11 Universal Buttons:**
+- `0` - **SELECT** - Menu navigation, secondary action
+- `1` - **START** - Pause/menu, primary action
+- `2` - **UP** - Directional input
+- `3` - **DOWN** - Directional input
+- `4` - **LEFT** - Directional input
+- `5` - **RIGHT** - Directional input
+- `6` - **A** - Primary action button
+- `7` - **B** - Secondary action button
+- `8` - **X** - Tertiary action button
+- `9` - **Y** - Quaternary action button
+- `10` - **TURBO** - Modifier button (e.g., boost, run)
+
+**Default Keyboard Mappings:**
+- SELECT (0): `Q`, `Backspace`
+- START (1): `Enter`, `Escape`
+- UP (2): `ArrowUp`, `W`
+- DOWN (3): `ArrowDown`, `S`
+- LEFT (4): `ArrowLeft`, `A`
+- RIGHT (5): `ArrowRight`, `D`
+- A (6): `Z`, `Space`
+- B (7): `X`
+- X (8): `C`
+- Y (9): `V`
+- TURBO (10): `Left Shift`, `Right Shift`
 
 **Functions:**
-- `rf.btn(button)` - Check if button is held
+- `rf.btn(button)` - Check if button is held (0-10)
 - `rf.btnp(button)` - Check if button was just pressed (edge-triggered)
 - `rf.btnr(button)` - Check if button was just released
+- `rf.shift()` - Alias for `rf.btn(10)` (TURBO button, backward compatibility)
 
+**Mobile/Tablet:**
+On mobile and tablet devices in portrait mode, an on-screen virtual controller is automatically displayed below the canvas. The controller maps directly to the 11-button system.
+
+**Example:**
 ```lua
 function _UPDATE(dt)
   -- Movement (continuous)
-  if rf.btn(0) then  -- Left held
+  if rf.btn(4) then  -- LEFT held
     player.x = player.x - 3
   end
   
   -- Jump (one-time)
-  if rf.btnp(4) then  -- Z just pressed
+  if rf.btnp(6) then  -- A button just pressed
     player.vy = -10
     rf.sfx("jump")
+  end
+  
+  -- Boost with TURBO
+  if rf.btn(10) then  -- TURBO button held
+    speed = speed * 1.5
   end
 end
 ```

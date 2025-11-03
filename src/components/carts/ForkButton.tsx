@@ -102,9 +102,17 @@ export function ForkButton({ cartId, originalCartName, cartFile, onForked }: For
     <>
       <button
         onClick={handleForkClick}
-        className="px-4 py-2 bg-retro-600 hover:bg-retro-500 rounded"
+        className="px-4 py-2 bg-retro-600 hover:bg-retro-500 rounded flex items-center gap-2"
         disabled={existingFork === undefined} // Disable while checking
       >
+        <svg
+          className="w-4 h-4"
+          fill="currentColor"
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+        >
+          <path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z" />
+        </svg>
         Fork
       </button>
       {showExistingForkDialog && existingFork && (

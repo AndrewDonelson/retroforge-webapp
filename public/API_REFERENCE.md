@@ -169,17 +169,75 @@ rf.setSpriteProperty("projectile", "maxSpawn", 10)  -- Max 10 at once
 
 ## Input
 
+RetroForge uses a **universal 11-button input system** that works consistently across all platforms (desktop, mobile, tablet).
+
+### Button Constants
+- `0` - **SELECT** - Menu navigation, secondary action
+- `1` - **START** - Pause/menu, primary action
+- `2` - **UP** - Directional input
+- `3` - **DOWN** - Directional input
+- `4` - **LEFT** - Directional input
+- `5` - **RIGHT** - Directional input
+- `6` - **A** - Primary action button
+- `7` - **B** - Secondary action button
+- `8` - **X** - Tertiary action button
+- `9` - **Y** - Quaternary action button
+- `10` - **TURBO** - Modifier button (e.g., boost, run)
+
+### Default Keyboard Mappings
+- **SELECT** (0): `Q`, `Backspace`
+- **START** (1): `Enter`, `Escape`
+- **UP** (2): `ArrowUp`, `W`
+- **DOWN** (3): `ArrowDown`, `S`
+- **LEFT** (4): `ArrowLeft`, `A`
+- **RIGHT** (5): `ArrowRight`, `D`
+- **A** (6): `Z`, `Space`
+- **B** (7): `X`
+- **X** (8): `C`
+- **Y** (9): `V`
+- **TURBO** (10): `Left Shift`, `Right Shift`
+
+### Mobile/Tablet
+On mobile and tablet devices in portrait mode, an on-screen virtual controller is automatically displayed below the canvas. The controller maps directly to the 11-button system.
+
+### Input Functions
+
 ### `rf.btn(button)`
-Check if button is pressed. Returns boolean.
-- Button 0-15: Standard buttons
-- Button 16+: Extended buttons
+Check if button is currently pressed. Returns boolean.
+- `button` (number): Button index (0-10)
+
+**Example:**
+```lua
+if rf.btn(10) then  -- TURBO button held
+  speed = speed * 1.5
+end
+```
 
 ### `rf.btnp(button)`
 Check if button was just pressed this frame (edge-triggered). Returns boolean.
+- `button` (number): Button index (0-10)
 - **Note**: Edge detection works correctly because the engine calls `input.Step()` at the end of each frame, saving the current frame's button state for the next frame's comparison. This ensures reliable edge detection in both desktop and WASM builds.
+
+**Example:**
+```lua
+if rf.btnp(1) then  -- START button pressed this frame
+  game.pushState("pause")
+end
+```
 
 ### `rf.btnr(button)`
 Check if button was just released this frame. Returns boolean.
+- `button` (number): Button index (0-10)
+
+### `rf.shift()`
+Check if TURBO button is pressed (backward compatibility alias for `rf.btn(10)`). Returns boolean.
+
+**Example:**
+```lua
+if rf.shift() then  -- Same as rf.btn(10)
+  boost_enabled = true
+end
+```
 
 ## Audio
 

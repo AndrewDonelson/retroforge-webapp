@@ -100,6 +100,12 @@ npm start
 - **ADSR envelope** controls
 - **Real-time preview** with Web Audio API
 
+### Universal Input System
+- **11-button system**: SELECT, START, UP, DOWN, LEFT, RIGHT, A, B, X, Y, TURBO
+- **Mobile support**: Automatic on-screen virtual controller in portrait mode
+- **Cross-platform**: Works on desktop (keyboard), mobile (touch), and tablet
+- **Controller component**: Touch-optimized virtual controller for mobile devices
+
 ### State Management
 - **State Machine API** - Flexible state management with lifecycle callbacks
 - **Module-Based States** - Convention-based state modules via `rf.import()`

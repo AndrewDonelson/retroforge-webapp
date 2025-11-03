@@ -128,10 +128,23 @@ async function unpackCartServer(base64: string): Promise<{
       continue
     }
 
-    // Regular assets - get as text (for .lua, .json, etc.)
-    // For binary files, we'd need base64, but most cart files are text
-    const content = await file.async('string')
-    assets.set(normalizedPath, content)
+    // Regular assets
+    // For .rpi files and other binary files, we need to get as Uint8Array then convert to base64
+    if (normalizedPath.endsWith('.rpi') || normalizedPath.match(/\.(png|jpg|jpeg|gif|webp|ico)$/i)) {
+      // Binary file - get as array buffer, convert to base64
+      const arrayBuffer = await file.async('arraybuffer')
+      const bytes = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i])
+      }
+      const base64 = btoa(binary)
+      assets.set(normalizedPath, base64)
+    } else {
+      // Text file (lua, json, etc.)
+      const content = await file.async('string')
+      assets.set(normalizedPath, content)
+    }
   }
 
   return { manifest, assets, sfx, music, sprites }

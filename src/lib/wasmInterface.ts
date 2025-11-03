@@ -14,11 +14,14 @@ declare global {
     rf_run_frame?: () => unknown;
     rf_get_pixels?: (dst: Uint8Array) => unknown;
     rf_set_btn?: (idx: number, down: boolean) => unknown;
+    rf_set_button?: (name: string, down: boolean) => unknown;
+    rf_set_shift?: (down: boolean) => unknown;
     rf_screenshot?: () => unknown;
     rf_screenshot_callback?: (pixels: Uint8Array, width: number, height: number) => void;
     rf_audio_playSine?: (freq: number, dur: number, gain: number) => void;
     rf_audio_playNoise?: (dur: number, gain: number) => void;
     rf_audio_thrust?: (on: boolean) => void;
+    rf_audio_playThrust?: (on: boolean, freq: number, gain: number) => void;
     rf_audio_playNotes?: (tokens: string[], bpm: number, gain: number) => void;
     rf_audio_stopAll?: () => void;
   }
@@ -58,12 +61,37 @@ export async function initWASM(
     // Wait a bit to ensure WASM functions are exported
     let attempts = 0;
     const checkReady = () => {
-      if (window.rf_init && window.rf_load_cart && window.rf_run_frame && window.rf_get_pixels) {
+      // Check for all required functions, including rf_set_btn for input
+      if (window.rf_init && 
+          window.rf_load_cart && 
+          window.rf_run_frame && 
+          window.rf_get_pixels &&
+          window.rf_set_btn) {
+        console.log('[wasmInterface] All WASM functions available, including rf_set_btn');
         onReady();
       } else if (attempts < 50) {
         attempts++;
+        // Log which functions are missing on first few attempts
+        if (attempts <= 3) {
+          console.log('[wasmInterface] Waiting for WASM functions...', {
+            rf_init: !!window.rf_init,
+            rf_load_cart: !!window.rf_load_cart,
+            rf_run_frame: !!window.rf_run_frame,
+            rf_get_pixels: !!window.rf_get_pixels,
+            rf_set_btn: !!window.rf_set_btn,
+            all_rf_keys: Object.keys(window).filter(k => k.startsWith('rf_'))
+          });
+        }
         setTimeout(checkReady, 100);
       } else {
+        console.error('[wasmInterface] WASM functions not available after initialization', {
+          rf_init: !!window.rf_init,
+          rf_load_cart: !!window.rf_load_cart,
+          rf_run_frame: !!window.rf_run_frame,
+          rf_get_pixels: !!window.rf_get_pixels,
+          rf_set_btn: !!window.rf_set_btn,
+          all_rf_keys: Object.keys(window).filter(k => k.startsWith('rf_'))
+        });
         onError?.(new Error("WASM functions not available after initialization"));
       }
     };
@@ -113,23 +141,44 @@ export function initAudio(): AudioContext | null {
     src.start();
   };
 
+  // Track multiple thrust sounds by frequency:gain key
+  const thrustOscs = new Map<string, OscillatorNode>();
+  
   window.rf_audio_thrust = (on: boolean) => {
+    // Legacy API - use default values
+    window.rf_audio_playThrust?.(on, 110, 0.2);
+  };
+
+  window.rf_audio_playThrust = (on: boolean, freq: number, gain: number) => {
     if (!ctx) return;
-    if (thrustOsc) {
-      try {
-        thrustOsc.stop();
-      } catch {}
-      thrustOsc = null;
-    }
+    const key = `${Math.round(freq)}:${gain.toFixed(2)}`;
+    
     if (on) {
+      // Stop any existing thrust with this key
+      if (thrustOscs.has(key)) {
+        try {
+          thrustOscs.get(key)?.stop();
+        } catch {}
+        thrustOscs.delete(key);
+      }
+      
+      // Start new thrust sound
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
       osc.type = "sawtooth";
-      osc.frequency.value = 110;
-      g.gain.value = 0.2;
+      osc.frequency.value = freq;
+      g.gain.value = gain;
       osc.connect(g).connect(ctx.destination);
       osc.start(ctx.currentTime);
-      thrustOsc = osc;
+      thrustOscs.set(key, osc);
+    } else {
+      // Stop this specific thrust
+      if (thrustOscs.has(key)) {
+        try {
+          thrustOscs.get(key)?.stop();
+        } catch {}
+        thrustOscs.delete(key);
+      }
     }
   };
 
@@ -194,12 +243,14 @@ export function initAudio(): AudioContext | null {
   };
 
   window.rf_audio_stopAll = () => {
-    if (thrustOsc) {
+    // Stop all thrust oscillators
+    for (const osc of thrustOscs.values()) {
       try {
-        thrustOsc.stop();
+        osc.stop();
       } catch {}
-      thrustOsc = null;
     }
+    thrustOscs.clear();
+    
     if (musicTimeout) {
       clearTimeout(musicTimeout);
       musicTimeout = null;
@@ -234,61 +285,31 @@ export function initAudio(): AudioContext | null {
 
 /**
  * Set up keyboard input handlers for WASM engine
+ * NOTE: Keyboard input is now handled by the Controller component.
+ * This function only handles PRINT SCREEN for screenshots.
  * @param onReady Callback when input handlers are set up
  * @returns Cleanup function to remove event listeners
  */
 export function setupInput(onReady?: () => void): (() => void) | null {
-  if (!window.rf_set_btn) {
-    // Retry after a delay
-    setTimeout(() => setupInput(onReady), 100);
-    return null;
-  }
-
-  function onKey(e: KeyboardEvent, down: boolean) {
-    if (!window.rf_set_btn) return;
-    
-    // Handle PRINT SCREEN key
-    if (e.code === "PrintScreen" && down && window.rf_screenshot) {
+  function onKey(e: KeyboardEvent) {
+    // Only handle PRINT SCREEN key here - everything else is handled by Controller
+    if (e.code === "PrintScreen" && window.rf_screenshot) {
       e.preventDefault();
       window.rf_screenshot();
-      return;
-    }
-    
-    // Map key codes to button indices
-    const map: Record<string, number> = {
-      ArrowLeft: 0,
-      ArrowRight: 1,
-      ArrowUp: 2,
-      ArrowDown: 3,
-      KeyZ: 4,
-      KeyX: 5,
-      Enter: 5,
-      Escape: 3, // ESC maps to button 3 (Down) for pause
-    };
-    
-    const idx = map[e.code];
-    if (idx !== undefined) {
-      e.preventDefault();
-      window.rf_set_btn(idx, down);
     }
   }
 
-  const kd = (e: KeyboardEvent) => onKey(e, true);
-  const ku = (e: KeyboardEvent) => onKey(e, false);
+  const kd = (e: KeyboardEvent) => onKey(e);
 
-  // Listen on both window and document to catch all events
+  // Listen for PRINT SCREEN only
   window.addEventListener("keydown", kd, true);
-  window.addEventListener("keyup", ku, true);
   document.addEventListener("keydown", kd, true);
-  document.addEventListener("keyup", ku, true);
 
   onReady?.();
 
   return () => {
     window.removeEventListener("keydown", kd, true);
-    window.removeEventListener("keyup", ku, true);
     document.removeEventListener("keydown", kd, true);
-    document.removeEventListener("keyup", ku, true);
   };
 }
 
@@ -344,7 +365,8 @@ export function isReady(): boolean {
     window.rf_init &&
     window.rf_load_cart &&
     window.rf_run_frame &&
-    window.rf_get_pixels
+    window.rf_get_pixels &&
+    window.rf_set_btn
   );
 }
 

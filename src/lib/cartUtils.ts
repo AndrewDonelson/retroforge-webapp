@@ -179,6 +179,20 @@ export async function unpackCart(base64: string): Promise<UnpackedCart> {
         continue
       }
       
+      // Handle .rpi files as binary (Raw Palette Indexed images)
+      // These will be loaded by the engine automatically when the cart is loaded
+      if (assetPath.endsWith('.rpi')) {
+        // Binary file - store as base64
+        const blob = await file.async('blob')
+        const reader = new FileReader()
+        assets[assetPath] = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+        continue
+      }
+      
       // Try to decode as text first (for .lua, .json, .txt, etc.)
       // For binary files, keep as base64
       if (assetPath.match(/\.(lua|json|txt|md|glsl)$/i)) {

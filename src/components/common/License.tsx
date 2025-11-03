@@ -139,13 +139,13 @@ export default function License() {
                       key={contentIdx}
                       className={`mb-4 ${
                         contentIdx === 0 &&
-                        section.id === "mit-license" &&
+                        section.id === "apache-license" &&
                         content.includes("Copyright")
                           ? "text-retro-400 font-semibold"
                           : "text-gray-300"
                       } ${
-                        section.id === "mit-license" &&
-                        content.includes("THE SOFTWARE")
+                        section.id === "apache-license" &&
+                        (content.includes("Licensed under") || content.includes("Apache License"))
                           ? "font-mono text-sm bg-gray-900/50 p-3 rounded border border-gray-700"
                           : ""
                       }`}

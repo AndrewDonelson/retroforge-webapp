@@ -172,3 +172,73 @@ export const getMyFavorites = query({
   },
 })
 
+/**
+ * Get favorite counts for multiple carts (batch query - optimized with parallel queries)
+ */
+export const getFavoriteCounts = query({
+  args: {
+    cartIds: v.array(v.id('carts')),
+  },
+  handler: async (ctx, { cartIds }) => {
+    if (cartIds.length === 0) return {}
+    
+    const counts: Record<string, number> = {}
+    
+    // Initialize all counts to 0
+    for (const cartId of cartIds) {
+      counts[cartId] = 0
+    }
+    
+    // Query all favorites in parallel using indexes (more efficient than sequential)
+    const favoritePromises = cartIds.map(async (cartId) => {
+      const favorites = await ctx.db
+        .query('userFavorites')
+        .withIndex('by_cart', (q) => q.eq('cartId', cartId))
+        .collect()
+      return { cartId, count: favorites.length }
+    })
+    
+    const results = await Promise.all(favoritePromises)
+    for (const { cartId, count } of results) {
+      counts[cartId] = count
+    }
+    
+    return counts
+  },
+})
+
+/**
+ * Get like counts for multiple carts (batch query - optimized with parallel queries)
+ */
+export const getLikeCounts = query({
+  args: {
+    cartIds: v.array(v.id('carts')),
+  },
+  handler: async (ctx, { cartIds }) => {
+    if (cartIds.length === 0) return {}
+    
+    const counts: Record<string, number> = {}
+    
+    // Initialize all counts to 0
+    for (const cartId of cartIds) {
+      counts[cartId] = 0
+    }
+    
+    // Query all likes in parallel using indexes (more efficient than sequential)
+    const likePromises = cartIds.map(async (cartId) => {
+      const likes = await ctx.db
+        .query('cartLikes')
+        .withIndex('by_cart', (q) => q.eq('cartId', cartId))
+        .collect()
+      return { cartId, count: likes.length }
+    })
+    
+    const results = await Promise.all(likePromises)
+    for (const { cartId, count } of results) {
+      counts[cartId] = count
+    }
+    
+    return counts
+  },
+})
+

@@ -80,6 +80,12 @@
   .animate-pixel-glow {
     animation: pixel-glow 2s ease-in-out infinite alternate;
   }
+
+  /* Staggered fade-in animation for cards */
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out forwards;
+    opacity: 0;
+  }
 }
 
 @layer utilities {
@@ -115,6 +121,17 @@
   }
   100% {
     box-shadow: 0 0 20px #0ea5e9, 0 0 30px #0ea5e9;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configure Turbopack for Next.js 16
+  // Temporarily disable Turbopack due to parser bug with forward slashes in JSX
+  // See: TURBOPACK_BUG_ANALYSIS.md for details
+  experimental: {
+    turbo: false, // Use webpack instead until Turbopack bug is fixed
+  },
+  // Configure Turbopack for Next.js 16 (disabled above)
   turbopack: {
     rules: {
       '*.wasm': {

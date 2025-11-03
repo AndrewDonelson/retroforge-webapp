@@ -67,7 +67,7 @@ export default function PalettePage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-pixel text-white">Palette</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Palette</h1>
         <p className="text-gray-400">Loading cart...</p>
       </div>
     )
@@ -75,7 +75,7 @@ export default function PalettePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-pixel text-white">Palette</h1>
+      <h1 className="text-xl font-pixel text-retro-400">Palette</h1>
       {cart && (
         <p className="text-xs text-gray-500">
           Current: {cart.manifest.palette || 'Not set (default)'}

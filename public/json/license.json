@@ -1,0 +1,165 @@
+{
+  "title": "RetroForge Engine License Agreement",
+  "lastUpdated": "2025-11-03",
+  "introduction": {
+    "heading": "MIT License - RetroForge Engine",
+    "content": [
+      "The RetroForge Engine (\"the Engine\") is open source software licensed under the MIT License. This License Agreement applies to the Engine binaries and source code.",
+      "By downloading, using, or distributing the RetroForge Engine, you agree to the terms of the MIT License."
+    ]
+  },
+  "sections": [
+    {
+      "id": "mit-license",
+      "heading": "MIT License Terms",
+      "content": [
+        "Copyright (c) 2025 RetroForge Engine Contributors",
+        "",
+        "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:",
+        "",
+        "The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.",
+        "",
+        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE."
+      ]
+    },
+    {
+      "id": "usage-permissions",
+      "heading": "What You Can Do",
+      "content": [
+        "Under the MIT License, you are free to:",
+        {
+          "type": "list",
+          "items": [
+            "Use the Engine for any purpose, including commercial projects",
+            "Modify the Engine source code",
+            "Distribute the Engine (binaries or source code)",
+            "Create derivative works based on the Engine",
+            "Use the Engine in proprietary software",
+            "Sublicense the Engine (as long as you include the MIT License terms)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "requirements",
+      "heading": "Requirements",
+      "content": [
+        "You must:",
+        {
+          "type": "list",
+          "items": [
+            "Include the copyright notice and MIT License text in any distribution",
+            "Include the copyright notice and MIT License text in any source code modifications",
+            "Not remove or alter the copyright notices"
+          ]
+        },
+        "You are NOT required to:",
+        {
+          "type": "list",
+          "items": [
+            "Disclose your source code (if using Engine in proprietary projects)",
+            "Pay any fees or royalties",
+            "Provide attribution beyond including the license text",
+            "Share your modifications (though contributions back are welcome)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cart-restrictions",
+      "heading": "Cart Files and Distribution Restrictions",
+      "content": [
+        "IMPORTANT: This MIT License applies ONLY to the RetroForge Engine. Cart files (.rf) are NOT covered by this license.",
+        "Cart files are subject to the Terms of Service, which include:",
+        {
+          "type": "list",
+          "items": [
+            "Carts can only be distributed through the RetroForge Platform",
+            "Carts cannot be published on other websites or platforms",
+            "Cart files cannot be shared directly (users must share Arcade page links)",
+            "Bundled binaries (Engine + cart) are subject to the same restrictions as cart files"
+          ]
+        },
+        "The Engine splash screen and credits screen handle attribution. No additional attribution is required beyond the MIT License text."
+      ]
+    },
+    {
+      "id": "bundled-binaries",
+      "heading": "Bundled Binaries",
+      "content": [
+        "Bundled binaries (RetroForge Engine + Cart) are available for download from Arcade pages. These binaries:",
+        {
+          "type": "list",
+          "items": [
+            "Contain the MIT-licensed Engine (subject to MIT License terms)",
+            "Contain cart files (subject to Terms of Service distribution restrictions)",
+            "Can be shared as downloaded from the Platform",
+            "Cannot be redistributed or modified beyond the original download",
+            "Must be distributed through the RetroForge Platform only"
+          ]
+        },
+        "When you download a bundled binary, you are downloading both the Engine (MIT licensed) and a cart (Terms of Service restricted). Both sets of terms apply."
+      ]
+    },
+    {
+      "id": "warranty-disclaimer",
+      "heading": "Warranty Disclaimer",
+      "content": [
+        "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.",
+        "In no event shall the authors or copyright holders be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the Software or the use or other dealings in the Software."
+      ]
+    },
+    {
+      "id": "commercial-use",
+      "heading": "Commercial Use",
+      "content": [
+        "The MIT License explicitly allows commercial use. You may:",
+        {
+          "type": "list",
+          "items": [
+            "Use the Engine in commercial software products",
+            "Sell software that includes or uses the Engine",
+            "Use the Engine in proprietary, closed-source projects",
+            "Modify the Engine for commercial purposes"
+          ]
+        },
+        "You do NOT need special permission or a commercial license. The MIT License is permissive and allows all forms of use."
+      ]
+    },
+    {
+      "id": "attribution",
+      "heading": "Attribution",
+      "content": [
+        "The MIT License requires that you include the copyright notice and license text in distributions. However:",
+        {
+          "type": "list",
+          "items": [
+            "The Engine includes a splash screen and credits screen that handle visual attribution",
+            "No additional attribution banners or \"Powered by\" notices are required",
+            "You must include the MIT License text in source code distributions",
+            "You must include the copyright notice in any documentation"
+          ]
+        },
+        "For binary distributions, including the license text file is sufficient."
+      ]
+    }
+  ],
+  "contact": {
+    "heading": "Questions About the License",
+    "content": [
+      "If you have questions about the MIT License or Engine usage, please contact us at:",
+      {
+        "type": "contact",
+        "email": "nlaakstudios@pm.me",
+        "website": "{APP_URL}"
+      },
+      "Please include \"Support\" in the subject line for general inquiries."
+    ]
+  },
+  "footer": {
+    "text": "This License Agreement is effective as of January 15, 2025. The MIT License terms are perpetual and apply to all versions of the RetroForge Engine.",
+    "company": "RetroForge Engine Contributors",
+    "rights": "MIT License - See license terms above."
+  }
+}
+

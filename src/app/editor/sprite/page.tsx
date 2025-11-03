@@ -903,7 +903,7 @@ export default function SpriteEditorPage() {
     <div className="h-full flex flex-col bg-gray-950">
       {/* Top toolbar */}
       <div className="editor-toolbar flex items-center gap-2 p-2 border-b border-gray-800">
-        <span className="font-pixel text-sm mr-2 text-gray-200">Sprite Editor</span>
+        <span className="font-pixel text-sm mr-2 text-retro-400">Sprite Editor</span>
         
         <button
           className="btn-retro text-xs h-8 px-3"

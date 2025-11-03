@@ -1,7 +1,7 @@
 export default function TileEditorPage() {
   return (
     <div className="h-full flex flex-col">
-      <div className="editor-toolbar">Tile Editor (placeholder)</div>
+      <div className="editor-toolbar text-retro-400">Tile Editor (placeholder)</div>
       <div className="editor-content p-3 grid md:grid-cols-[1fr_280px] gap-3">
         <div className="pixel-container w-full h-80 bg-gray-900 flex items-center justify-center">
           <span className="text-gray-400">Tile canvas</span>

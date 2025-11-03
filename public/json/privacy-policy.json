@@ -1,0 +1,220 @@
+{
+  "title": "Privacy Policy",
+  "lastUpdated": "2025-11-03",
+  "introduction": {
+    "heading": "Introduction",
+    "content": [
+      "At {APP_NAME}, operated by {COMPANY_NAME}, we are committed to protecting your privacy. This Privacy Policy outlines our practices regarding the collection, use, and protection of your information when you use our service.",
+      "By using {APP_NAME}, you agree to the collection and use of information in accordance with this policy."
+    ]
+  },
+  "sections": [
+    {
+      "id": "information-collection",
+      "heading": "Information Collection",
+      "content": [
+        "{APP_NAME} is designed for maximum user privacy. We collect minimal information necessary to provide our service:",
+        {
+          "type": "list",
+          "items": [
+            "Usage statistics (game plays, page views, interaction data)",
+            "Technical information (browser type, device information, IP addresses for security)",
+            "Account information (cryptographic key pairs for authentication - NO email, phone, or personal contact information)"
+          ]
+        },
+        "We do NOT collect:",
+        {
+          "type": "list",
+          "items": [
+            "Email addresses",
+            "Phone numbers",
+            "Real names or personal identifiers",
+            "Physical addresses",
+            "Payment information (tipping is handled by third-party platforms)",
+            "Any personally identifiable information beyond usage statistics"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "keypair-authentication",
+      "heading": "KeyPair Authentication",
+      "content": [
+        "{APP_NAME} uses cryptographic key pairs for authentication. This means:",
+        {
+          "type": "list",
+          "items": [
+            "No email or phone verification is required",
+            "No personal contact information is stored",
+            "Account security is based on cryptographic keys only",
+            "You are responsible for maintaining the security of your keys"
+          ]
+        },
+        "If you lose your keys, your account and all associated data cannot be recovered. {COMPANY_NAME} cannot reset accounts or recover lost keys."
+      ]
+    },
+    {
+      "id": "information-use",
+      "heading": "Use of Information",
+      "content": [
+        "Your information is used exclusively for:",
+        {
+          "type": "list",
+          "items": [
+            "Providing and maintaining the Service",
+            "Account authentication and security",
+            "Improving platform performance and user experience",
+            "Generating aggregated usage statistics (no personal identification)"
+          ]
+        },
+        "We do NOT sell or rent your data to third parties. Your usage statistics are used only for internal analytics and service improvement."
+      ]
+    },
+    {
+      "id": "third-party-services",
+      "heading": "Third-Party Services",
+      "content": [
+        "{APP_NAME} uses third-party services that may collect information:",
+        {
+          "type": "list",
+          "items": [
+            "Ad Networks: Google AdSense, Mediavine, AdThrive, Ezoic, and Rumble (for advertising)",
+            "Hosting and Infrastructure: Convex (for data storage and backend services)",
+            "Tipping Platforms: PayPal, Patreon, and others (users may link, but we do not collect payment data)"
+          ]
+        },
+        "These third-party services have their own privacy policies. We encourage you to review them. {COMPANY_NAME} is not responsible for the privacy practices of third-party services.",
+        "Ad networks may use cookies and tracking technologies. See the \"Cookies and Tracking\" section for details."
+      ]
+    },
+    {
+      "id": "data-sharing",
+      "heading": "Data Sharing",
+      "content": [
+        "{COMPANY_NAME} does NOT share your personal information with third parties except:",
+        {
+          "type": "list",
+          "items": [
+            "As necessary to provide the Service (e.g., with hosting providers like Convex)",
+            "With advertising networks (for serving ads - see Third-Party Services)",
+            "When required by law or legal process",
+            "To protect the rights, property, or safety of {COMPANY_NAME}, users, or others"
+          ]
+        },
+        "We do NOT sell or rent your data to anyone. We do NOT share your usage statistics with third parties for marketing purposes."
+      ]
+    },
+    {
+      "id": "data-retention",
+      "heading": "Data Retention",
+      "content": [
+        "{COMPANY_NAME} retains usage statistics and platform data indefinitely to:",
+        {
+          "type": "list",
+          "items": [
+            "Maintain service continuity and account functionality",
+            "Provide historical analytics and platform insights",
+            "Support ongoing service improvements"
+          ]
+        },
+        "Cart data, user profiles, and game content are retained as long as the Service operates, unless deleted by the user or removed for Terms of Service violations.",
+        "Upon account termination (voluntary or for violations), cart ownership may be transferred to {COMPANY_NAME}, and data may be retained as part of the Platform."
+      ]
+    },
+    {
+      "id": "cookies-tracking",
+      "heading": "Cookies and Tracking",
+      "content": [
+        "{APP_NAME} and our advertising partners use cookies and tracking technologies:",
+        {
+          "type": "list",
+          "items": [
+            "Essential cookies for platform functionality (authentication, preferences)",
+            "Advertising cookies from ad networks (Google AdSense, Mediavine, AdThrive, Ezoic, Rumble)",
+            "Analytics cookies for usage statistics (no personal identification)"
+          ]
+        },
+        "Ad networks may use cookies to:",
+        {
+          "type": "list",
+          "items": [
+            "Display relevant advertisements",
+            "Track ad performance and prevent fraud",
+            "Provide aggregated analytics to advertisers"
+          ]
+        },
+        "You can control cookies through your browser settings. Note that disabling cookies may affect platform functionality and ad display."
+      ]
+    },
+    {
+      "id": "data-security",
+      "heading": "Data Security",
+      "content": [
+        "{COMPANY_NAME} implements security measures to protect your information:",
+        {
+          "type": "list",
+          "items": [
+            "Cryptographic authentication (no passwords to breach)",
+            "Secure connections (HTTPS) for all data transmission",
+            "Regular security updates and monitoring",
+            "Access controls and authentication protocols"
+          ]
+        },
+        "However, no method of transmission over the Internet is 100% secure. While we strive to protect your data, we cannot guarantee absolute security."
+      ]
+    },
+    {
+      "id": "children-privacy",
+      "heading": "Children's Privacy",
+      "content": [
+        "{APP_NAME} does not knowingly collect personal information from children under any specific age. However, we do not require age verification.",
+        "If you are a parent or guardian and believe your child has provided information to {APP_NAME}, please contact us at {APP_EMAIL_PRIVACY} with \"Support\" in the subject line.",
+        "Since we use KeyPair authentication and do not collect personal contact information, children's privacy is inherently protected by our minimal data collection practices."
+      ]
+    },
+    {
+      "id": "user-rights",
+      "heading": "Your Rights",
+      "content": [
+        "You have the following rights regarding your information:",
+        {
+          "type": "list",
+          "items": [
+            "Right to access your usage statistics and account data",
+            "Right to request deletion of your account (note: cart ownership may transfer to {COMPANY_NAME} upon deletion)",
+            "Right to control cookie preferences through your browser",
+            "Right to stop using the Service at any time"
+          ]
+        },
+        "Since we do not collect email addresses or personal contact information, account management is done through the Platform interface."
+      ]
+    },
+    {
+      "id": "changes",
+      "heading": "Changes to This Policy",
+      "content": [
+        "{COMPANY_NAME} may update this Privacy Policy from time to time.",
+        "We will notify users of significant changes by posting the new policy on this page with an updated \"Last Updated\" date.",
+        "Continued use of our Service after changes constitutes acceptance of the updated policy.",
+        "It is your responsibility to review this Privacy Policy periodically."
+      ]
+    }
+  ],
+  "contact": {
+    "heading": "Contact Us",
+    "content": [
+      "If you have any questions about this Privacy Policy, please contact us at:",
+      {
+        "type": "contact",
+        "email": "nlaakstudios@pm.me",
+        "website": "{APP_URL}"
+      },
+      "Please include \"Support\" in the subject line for general inquiries."
+    ]
+  },
+  "footer": {
+    "text": "This Privacy Policy is effective as of January 15, 2025 and will remain in effect except with respect to any changes in its provisions in the future.",
+    "company": "{COMPANY_COPYRIGHT}",
+    "rights": "All rights reserved."
+  }
+}

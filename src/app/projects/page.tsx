@@ -23,7 +23,7 @@ export default function ProjectsPage() {
   if (!isAuthenticated || !user) {
     return (
       <div className="max-w-6xl mx-auto p-4">
-        <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
+        <h1 className="text-2xl font-semibold mb-4 text-retro-400">My Projects</h1>
         <p className="text-gray-400">Please log in to view your projects.</p>
       </div>
     )
@@ -32,7 +32,7 @@ export default function ProjectsPage() {
   if (myCarts === undefined) {
     return (
       <div className="max-w-6xl mx-auto p-4">
-        <h1 className="text-2xl font-semibold mb-4">My Projects</h1>
+        <h1 className="text-2xl font-semibold mb-4 text-retro-400">My Projects</h1>
         <p className="text-gray-400">Loading...</p>
       </div>
     )
@@ -61,7 +61,7 @@ export default function ProjectsPage() {
   return (
     <div className="max-w-6xl mx-auto p-4">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">My Projects</h1>
+        <h1 className="text-2xl font-semibold text-retro-400">My Projects</h1>
         <Link
           href="/editor/properties"
           className="px-4 py-2 bg-retro-600 hover:bg-retro-500 rounded"

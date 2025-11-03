@@ -53,7 +53,7 @@ function MusicEditorPageInner() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-pixel text-white">Music</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Music</h1>
         <p className="text-gray-400">Loading cart...</p>
       </div>
     )
@@ -62,7 +62,7 @@ function MusicEditorPageInner() {
   if (!cart) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-pixel text-white">Music</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Music</h1>
         {error && (
           <div className="p-3 rounded bg-red-900/30 text-red-400">
             Error: {error}
@@ -135,7 +135,7 @@ function MusicEditorPageInner() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-pixel text-white">Music</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Music</h1>
         <button
           onClick={handleAddTrack}
           className="btn-retro px-4 py-2 text-sm"

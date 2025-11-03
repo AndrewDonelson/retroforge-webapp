@@ -86,7 +86,7 @@ export function CreateCartModal({ onCreate, onCancel }: CreateCartModalProps) {
         style={{ zIndex: 10000 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-2xl font-bold mb-3">Create New Cart</h2>
+        <h2 className="text-2xl font-bold mb-3 text-retro-400">Create New Cart</h2>
         
         <p className="text-gray-300 mb-4">
           Enter a name for your new cart. Format: <code className="bg-gray-700 px-1 rounded">username/cartname</code>

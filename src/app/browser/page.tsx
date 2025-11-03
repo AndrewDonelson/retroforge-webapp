@@ -150,7 +150,7 @@ function BrowserPageInner() {
     <div className="min-h-screen bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between gap-4 mb-6">
-          <h1 className="text-3xl font-pixel text-white">Browse Games</h1>
+          <h1 className="text-3xl font-pixel text-retro-400">Browse Games</h1>
         </div>
 
         {/* Filters */}
@@ -230,7 +230,7 @@ function BrowserPageInner() {
             >
               <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="text-white font-semibold leading-snug truncate">
+                  <h3 className="text-retro-400 font-semibold leading-snug truncate">
                     {cart.title}
                   </h3>
                   <span className="shrink-0 text-2xs px-2 py-0.5 bg-gray-700 border border-gray-600 uppercase tracking-wide">

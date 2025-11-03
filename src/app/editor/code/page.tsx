@@ -291,7 +291,7 @@ export default function CodeEditorPage() {
   return (
     <div className="h-full flex flex-col">
       <div className="editor-toolbar flex items-center gap-3">
-        <div className="text-sm text-gray-300">Code Editor</div>
+        <div className="text-sm text-retro-400">Code Editor</div>
         <select
           className="input-retro"
           value={activePath}

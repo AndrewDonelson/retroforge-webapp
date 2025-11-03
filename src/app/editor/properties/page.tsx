@@ -44,7 +44,7 @@ function PropertiesPageInner() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-pixel text-white">Project Properties</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Project Properties</h1>
         <p className="text-gray-400">Loading cart...</p>
       </div>
     )
@@ -53,7 +53,7 @@ function PropertiesPageInner() {
   if (!cart) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-pixel text-white">Project Properties</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Project Properties</h1>
         {error && (
           <div className="p-3 rounded bg-red-900/30 text-red-400">
             Error: {error}
@@ -76,7 +76,7 @@ function PropertiesPageInner() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-pixel text-white">Project Properties</h1>
+      <h1 className="text-xl font-pixel text-retro-400">Project Properties</h1>
       <div className="grid md:grid-cols-2 gap-4">
         <div className="card-retro p-3">
           <div className="text-sm text-gray-300 mb-2">Basics</div>
@@ -187,7 +187,7 @@ export default function PropertiesPage() {
   return (
     <Suspense fallback={
       <div className="space-y-4">
-        <h1 className="text-xl font-pixel text-white">Project Properties</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Project Properties</h1>
         <p className="text-gray-400">Loading...</p>
       </div>
     }>

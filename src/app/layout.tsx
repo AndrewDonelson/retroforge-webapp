@@ -7,7 +7,12 @@ import SiteFooter from '@/components/layout/SiteFooter'
 import { ConvexProvider } from '@/providers/ConvexProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
+  adjustFontFallback: true,
+})
 
 export const metadata: Metadata = {
   title: 'RetroForge - Forge Your Retro Dreams',

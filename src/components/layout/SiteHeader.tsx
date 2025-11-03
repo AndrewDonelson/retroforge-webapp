@@ -102,6 +102,16 @@ export default function SiteHeader() {
               <IconPencil />
               {labelMode === 'icons+text' && <span className="hidden xs:inline">Create</span>}
             </Link>
+            <Link
+              href="/downloads"
+              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-gray-700/50 text-gray-200"
+              aria-label="Downloads"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {labelMode === 'icons+text' && <span className="hidden xs:inline">Downloads</span>}
+            </Link>
             {isAuthenticated && (
               <Link
                 href="/projects"

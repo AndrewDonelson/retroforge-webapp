@@ -1,0 +1,318 @@
+{
+  "title": "Terms of Service",
+  "lastUpdated": "2025-11-03",
+  "introduction": {
+    "heading": "Introduction",
+    "content": [
+      "Welcome to {APP_NAME} (\"the Platform\", \"the Service\"), operated by {COMPANY_NAME}. By accessing or using our services, you agree to these Terms of Service (\"Terms\"). Please read them carefully.",
+      "{APP_NAME} is a fantasy console platform that enables users to create, play, and share game carts. The Platform is ad-supported and free to use. Your use of the Service is subject to these Terms and our Privacy Policy."
+    ]
+  },
+  "sections": [
+    {
+      "id": "acceptance",
+      "heading": "Acceptance of Terms",
+      "content": [
+        "By using {APP_NAME}, you agree to:",
+        {
+          "type": "list",
+          "items": [
+            "Comply with all applicable laws and regulations",
+            "Take responsibility for your actions and content",
+            "Accept our Privacy Policy and License Agreement",
+            "Acknowledge that the Platform is provided \"as is\" without warranties"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "service-description",
+      "heading": "Service Description",
+      "content": [
+        "{APP_NAME} provides:",
+        {
+          "type": "list",
+          "items": [
+            "A web-based platform for creating and playing game carts",
+            "The RetroForge Engine (open source, MIT licensed) for running carts",
+            "A community platform for sharing and discovering games",
+            "Ad-supported services with no subscription fees"
+          ]
+        },
+        "The Platform is owned and operated by {COMPANY_NAME}. All rights to the Web Application and Platform infrastructure are reserved by {COMPANY_NAME}."
+      ]
+    },
+    {
+      "id": "account-registration",
+      "heading": "Account Registration",
+      "content": [
+        "{APP_NAME} uses KeyPair-based authentication for maximum user privacy. We do not collect:",
+        {
+          "type": "list",
+          "items": [
+            "Email addresses",
+            "Phone numbers",
+            "Real names or personal contact information",
+            "Any personally identifiable information"
+          ]
+        },
+        "Users are identified solely by cryptographic key pairs. You are responsible for maintaining the security of your account keys."
+      ]
+    },
+    {
+      "id": "cart-ownership",
+      "heading": "Cart Ownership and Licensing",
+      "content": [
+        "When you create a cart on {APP_NAME}:",
+        {
+          "type": "list",
+          "items": [
+            "You retain ownership of the intellectual property in your cart",
+            "You grant {COMPANY_NAME} a worldwide, royalty-free license to host, display, and distribute your cart on the {APP_NAME} platform",
+            "You represent that you have the right to create and publish the cart"
+          ]
+        },
+        "All carts, whether published or unpublished, are subject to the distribution restrictions outlined in these Terms."
+      ]
+    },
+    {
+      "id": "cart-distribution",
+      "heading": "Cart Distribution Restrictions",
+      "content": [
+        "Carts created on {APP_NAME} are EXCLUSIVE to the RetroForge platform. You agree NOT to:",
+        {
+          "type": "list",
+          "items": [
+            "Distribute cart files (.rf) directly to others (share links to the Arcade page instead)",
+            "Publish or distribute your cart on any other website, platform, or service",
+            "Embed or display your cart on other websites (you may embed the Arcade page)",
+            "Create bundled binaries (engine + cart) for distribution outside the {APP_NAME} web application"
+          ]
+        },
+        "These restrictions apply to ALL carts, whether published or unpublished. The only exception is sharing links to Arcade pages, which is permitted and encouraged.",
+        "Bundled binaries (engine + cart) are available for download from Arcade pages and are subject to the same distribution restrictions as cart files."
+      ]
+    },
+    {
+      "id": "content-restrictions",
+      "heading": "Content Restrictions",
+      "content": [
+        "While {APP_NAME} supports creative expression, all content must comply with applicable laws. Prohibited content includes:",
+        {
+          "type": "list",
+          "items": [
+            "Illegal content or content promoting illegal activities",
+            "Copyright-infringing material without proper authorization",
+            "Hate speech, harassment, or content that promotes violence",
+            "Adult content that violates applicable laws or platform standards",
+            "Malicious code, malware, or content designed to harm users' systems",
+            "Content that violates third-party intellectual property rights"
+          ]
+        },
+        "{COMPANY_NAME} reserves the right to remove any content that violates these restrictions."
+      ]
+    },
+    {
+      "id": "monetization",
+      "heading": "User Monetization",
+      "content": [
+        "Users may receive voluntary tips or donations for their carts through:",
+        {
+          "type": "list",
+          "items": [
+            "PayPal",
+            "Patreon",
+            "Other third-party tipping platforms (as long as free APIs are available)"
+          ]
+        },
+        "Users may NOT charge a set price for carts. All carts must be available free of charge on the {APP_NAME} platform.",
+        "The Platform itself is monetized solely through advertising. Ads appear on all pages (for both visitors and developers) and are our only source of income."
+      ]
+    },
+    {
+      "id": "ad-supported-service",
+      "heading": "Ad-Supported Service",
+      "content": [
+        "{APP_NAME} is an ad-supported platform. By using the Service, you acknowledge that:",
+        {
+          "type": "list",
+          "items": [
+            "Advertising is our only source of revenue",
+            "Ads appear on all pages (visitor and developer pages)",
+            "Ads will remain visible when Arcade pages are embedded on other websites",
+            "We use third-party ad networks (Google AdSense, Mediavine, AdThrive, Ezoic, and Rumble)"
+          ]
+        },
+        "Ad revenue is essential to maintaining the free service. Users may not block or circumvent advertising on the Platform."
+      ]
+    },
+    {
+      "id": "acceptable-use",
+      "heading": "Acceptable Use Policy",
+      "content": [
+        "You agree to use the Service only for lawful purposes and in accordance with these Terms. You agree NOT to:",
+        {
+          "type": "list",
+          "items": [
+            "Violate any applicable laws or regulations",
+            "Infringe on intellectual property rights",
+            "Upload malicious code or attempt to compromise system security",
+            "Interfere with or disrupt the Service",
+            "Attempt to reverse engineer or extract source code from the Platform",
+            "Use automated tools to scrape or harvest data from the Platform",
+            "Circumvent advertising or attempt to block ads"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "intellectual-property",
+      "heading": "Intellectual Property",
+      "content": [
+        "The {APP_NAME} Platform, Web Application, and all related infrastructure are the exclusive property of {COMPANY_NAME} and are protected by copyright, trademark, and other laws.",
+        "The RetroForge Engine is open source software licensed under the MIT License. See the License Agreement for details.",
+        "Cart files (.rf) created by users remain the intellectual property of their creators, subject to the licensing and distribution restrictions in these Terms."
+      ]
+    },
+    {
+      "id": "account-termination",
+      "heading": "Account Termination and Violations",
+      "content": [
+        "{COMPANY_NAME} reserves the right to terminate accounts that violate these Terms. Upon termination:",
+        {
+          "type": "list",
+          "items": [
+            "The account and associated keys will be frozen",
+            "Ownership of all carts created by the user will be transferred to {COMPANY_NAME}",
+            "The user may create a new account, but will lose ownership of all previous carts",
+            "Forked carts will continue to work and may be forked from {COMPANY_NAME} carts"
+          ]
+        },
+        "For serious violations, users may face legal action and will be liable for all court costs. Normal violations result in account termination and cart ownership transfer.",
+        "Account termination decisions are final and at {COMPANY_NAME}'s sole discretion, subject to the dispute resolution process outlined below."
+      ]
+    },
+    {
+      "id": "dispute-resolution",
+      "heading": "Dispute Resolution",
+      "content": [
+        "If you dispute an account termination or cart ownership transfer:",
+        {
+          "type": "list",
+          "items": [
+            "You may email {APP_EMAIL_LEGAL} with \"Legal\" in the subject line explaining your reasoning",
+            "{COMPANY_NAME} may request a VOIP call to attempt resolution",
+            "If resolution cannot be reached, {COMPANY_NAME}'s decision is final",
+            "You may pursue legal action at your own expense, and you will be liable for all court costs"
+          ]
+        },
+        "These Terms are governed by the laws of the State of Texas, United States. Any disputes must be resolved in Texas courts."
+      ]
+    },
+    {
+      "id": "service-availability",
+      "heading": "Service Availability",
+      "content": [
+        "The Service is provided \"as is\" without warranties of any kind. {COMPANY_NAME} does not guarantee:",
+        {
+          "type": "list",
+          "items": [
+            "Uninterrupted or error-free service",
+            "Specific uptime or availability",
+            "Data security or protection against loss",
+            "Compatibility with all devices or browsers"
+          ]
+        },
+        "{COMPANY_NAME} reserves the right to:",
+        {
+          "type": "list",
+          "items": [
+            "Terminate the Service at any time",
+            "Modify or discontinue features without notice",
+            "Perform maintenance that may temporarily interrupt service"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "liability",
+      "heading": "Limitation of Liability",
+      "content": [
+        "{APP_NAME} is provided \"as is\" without any warranties, express or implied. We explicitly disclaim responsibility for:",
+        {
+          "type": "list",
+          "items": [
+            "User-generated content and carts",
+            "Loss of data or service interruptions",
+            "Any consequential, incidental, or punitive damages",
+            "Third-party content or services (including ad networks)",
+            "Any damages exceeding the amount you paid to use the Service (which is $0)"
+          ]
+        },
+        "Users access and use the Platform at their own risk and discretion."
+      ]
+    },
+    {
+      "id": "indemnification",
+      "heading": "Indemnification",
+      "content": [
+        "You agree to indemnify and hold harmless {COMPANY_NAME}, its operators, and affiliates from:",
+        {
+          "type": "list",
+          "items": [
+            "Claims arising from your content, carts, or actions",
+            "Violations of these Terms",
+            "Disputes with other users",
+            "Legal fees and costs related to your activities",
+            "All court costs if legal action is pursued"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dmca",
+      "heading": "DMCA Takedown Notices",
+      "content": [
+        "If you believe your copyright has been infringed, send a DMCA takedown notice to {APP_EMAIL_DMCA} with \"DMCA\" in the subject line.",
+        "Your notice must include:",
+        {
+          "type": "list",
+          "items": [
+            "Identification of the copyrighted work",
+            "Identification of the infringing material",
+            "Your contact information",
+            "A statement of good faith belief that the use is not authorized",
+            "A statement that the information is accurate and you are authorized to act",
+            "Your physical or electronic signature"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "modifications",
+      "heading": "Modifications to Terms",
+      "content": [
+        "{COMPANY_NAME} may modify these Terms at any time. Continued use of the Platform after changes constitutes acceptance of the modified Terms.",
+        "Users will be notified of significant changes through the Platform. It is your responsibility to review these Terms periodically."
+      ]
+    }
+  ],
+  "contact": {
+    "heading": "Contact Information",
+    "content": [
+      "For legal inquiries, send an email to {APP_EMAIL_LEGAL} with \"Legal\" in the subject line.",
+      "For DMCA takedown notices, send an email to {APP_EMAIL_DMCA} with \"DMCA\" in the subject line.",
+      "For general support, send an email to {APP_EMAIL_PRIVACY} with \"Support\" in the subject line.",
+      {
+        "type": "contact",
+        "email": "nlaakstudios@pm.me",
+        "website": "{APP_URL}"
+      }
+    ]
+  },
+  "footer": {
+    "text": "These Terms of Service are effective as of January 15, 2025 and supersede all previous versions.",
+    "company": "{COMPANY_COPYRIGHT}",
+    "rights": "All rights reserved."
+  }
+}

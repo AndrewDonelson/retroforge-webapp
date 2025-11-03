@@ -52,7 +52,7 @@ function SoundEditorPageInner() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-pixel text-white">Sound Effects</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Sound Effects</h1>
         <p className="text-gray-400">Loading cart...</p>
       </div>
     )
@@ -61,7 +61,7 @@ function SoundEditorPageInner() {
   if (!cart) {
     return (
       <div className="space-y-4">
-        <h1 className="text-xl font-pixel text-white">Sound Effects</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Sound Effects</h1>
         {error && (
           <div className="p-3 rounded bg-red-900/30 text-red-400">
             Error: {error}
@@ -132,7 +132,7 @@ function SoundEditorPageInner() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-pixel text-white">Sound Effects</h1>
+        <h1 className="text-xl font-pixel text-retro-400">Sound Effects</h1>
         <button
           onClick={handleAddSFX}
           className="btn-retro px-4 py-2 text-sm"

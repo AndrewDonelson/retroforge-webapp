@@ -244,11 +244,11 @@ export function initAudio(): AudioContext | null {
 
   window.rf_audio_stopAll = () => {
     // Stop all thrust oscillators
-    for (const osc of thrustOscs.values()) {
+    Array.from(thrustOscs.values()).forEach(osc => {
       try {
         osc.stop();
       } catch {}
-    }
+    });
     thrustOscs.clear();
     
     if (musicTimeout) {

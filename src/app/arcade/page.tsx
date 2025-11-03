@@ -165,7 +165,7 @@ export default function ArcadePage() {
   useEffect(() => {
     if (!ready) return;
     const cleanup = setupInput();
-    return cleanup;
+    return cleanup || undefined;
   }, [ready]);
 
   async function start() {

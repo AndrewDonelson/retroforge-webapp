@@ -11,6 +11,7 @@ interface PlatformBinary {
 }
 
 interface GitHubRelease {
+  id: number;
   tag_name: string;
   name: string;
   published_at: string;

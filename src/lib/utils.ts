@@ -25,15 +25,15 @@ export function parseTemplateVars<T>(obj: T): T {
   }
 
   if (typeof obj === "string") {
-    let result = obj
+    let result: string = obj
     for (const [key, value] of Object.entries(TEMPLATE_VARS)) {
       result = result.replace(new RegExp(key.replace(/[{}]/g, "\\$&"), "g"), value)
     }
-    return result as T
+    return result as unknown as T
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => parseTemplateVars(item)) as T
+    return obj.map((item) => parseTemplateVars(item)) as unknown as T
   }
 
   if (typeof obj === "object") {

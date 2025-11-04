@@ -7,6 +7,8 @@ import { useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useAuth } from '@/contexts/AuthContext'
 import type { SFXMap } from '@/lib/cartUtils'
+import { SoundPadEditor } from '@/components/editor/SoundPadEditor'
+import { tokensToSFX, sfxToTokens } from '@/lib/sfxTokenUtils'
 
 function SoundEditorPageInner() {
   const { cart, isLoading, error, cartId, updateSFX } = useEditor()
@@ -17,6 +19,8 @@ function SoundEditorPageInner() {
   const [sfx, setSFX] = useState<SFXMap>({})
   const [selectedSFX, setSelectedSFX] = useState<string | null>(null)
   const [editingSFX, setEditingSFX] = useState<{ name: string; type: string; freq: number; duration: number; gain: number } | null>(null)
+  const [usingPadEditor, setUsingPadEditor] = useState(false)
+  const [padEditorTokens, setPadEditorTokens] = useState<string[]>([])
   
   // Load SFX from cart
   useEffect(() => {
@@ -76,31 +80,81 @@ function SoundEditorPageInner() {
 
   const handleAddSFX = () => {
     const name = `sfx_${Date.now()}`
-    const newSFX: SFXMap = {
-      ...sfx,
-      [name]: {
-        type: 'sine',
-        freq: 440,
-        duration: 0.1,
-        gain: 0.3,
-      }
-    }
-    setSFX(newSFX)
-    updateSFX(newSFX)
-    setEditingSFX({ name, type: 'sine', freq: 440, duration: 0.1, gain: 0.3 })
     setSelectedSFX(name)
+    setPadEditorTokens([])
+    setUsingPadEditor(true)
+    setEditingSFX(null)
   }
 
   const handleEditSFX = (name: string) => {
     const sfxDef = sfx[name]
-    setEditingSFX({ 
-      name, 
-      type: sfxDef.type || 'sine',
-      freq: sfxDef.freq ?? 440,
-      duration: sfxDef.duration ?? 0.1,
-      gain: sfxDef.gain ?? 0.3
-    })
-    setSelectedSFX(name)
+    
+    // Check if this is a sequence (has tokens array)
+    if ((sfxDef as any).tokens && Array.isArray((sfxDef as any).tokens)) {
+      // Load sequence into pad editor
+      setPadEditorTokens((sfxDef as any).tokens)
+      setUsingPadEditor(true)
+      setSelectedSFX(name)
+      setEditingSFX(null)
+    } else {
+      // Convert to tokens for pad editor compatibility
+      const tokens = sfxToTokens({
+        type: sfxDef.type || 'sine',
+        freq: sfxDef.freq ?? 440,
+        duration: sfxDef.duration ?? 0.1,
+        gain: sfxDef.gain ?? 0.3,
+      } as any)
+      
+      setPadEditorTokens(tokens)
+      setEditingSFX({ 
+        name, 
+        type: sfxDef.type || 'sine',
+        freq: sfxDef.freq ?? 440,
+        duration: sfxDef.duration ?? 0.1,
+        gain: sfxDef.gain ?? 0.3
+      })
+      setSelectedSFX(name)
+      setUsingPadEditor(false)
+    }
+  }
+
+  const handleUsePadEditor = (name?: string) => {
+    if (name) {
+      const sfxDef = sfx[name]
+      const tokens = sfxToTokens({
+        type: sfxDef.type || 'sine',
+        freq: sfxDef.freq ?? 440,
+        duration: sfxDef.duration ?? 0.1,
+        gain: sfxDef.gain ?? 0.3,
+      } as any)
+      setPadEditorTokens(tokens)
+      setSelectedSFX(name)
+    } else {
+      setPadEditorTokens([])
+      setSelectedSFX(null)
+    }
+    setUsingPadEditor(true)
+    setEditingSFX(null)
+  }
+
+  const handlePadEditorSave = (tokens: string[]) => {
+    if (!selectedSFX) {
+      // Create new SFX
+      const name = `sfx_${Date.now()}`
+      const sfxDef = tokensToSFX(tokens)
+      const updated = { ...sfx, [name]: sfxDef as any }
+      setSFX(updated)
+      updateSFX(updated)
+      setSelectedSFX(name)
+    } else {
+      // Update existing SFX
+      const sfxDef = tokensToSFX(tokens)
+      const updated = { ...sfx, [selectedSFX]: sfxDef as any }
+      setSFX(updated)
+      updateSFX(updated)
+    }
+    setUsingPadEditor(false)
+    setPadEditorTokens([])
   }
 
   const handleSaveSFX = () => {
@@ -131,17 +185,43 @@ function SoundEditorPageInner() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-xl font-pixel text-retro-400">Sound Effects</h1>
-        <button
-          onClick={handleAddSFX}
-          className="btn-retro px-4 py-2 text-sm"
-        >
-          + Add SFX
-        </button>
+        <div className="flex gap-2">
+          {!usingPadEditor && (
+            <button
+              onClick={handleAddSFX}
+              className="btn-retro px-4 py-2 text-sm"
+            >
+              + Add SFX
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* Pad Editor Modal */}
+      {usingPadEditor && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm overflow-y-auto">
+          <div className="min-h-screen p-4 sm:p-6">
+            <SoundPadEditor
+              soundName={selectedSFX || 'New Sound'}
+              initialTokens={padEditorTokens}
+              onSave={(tokens) => {
+                handlePadEditorSave(tokens)
+                setUsingPadEditor(false)
+              }}
+              onCancel={() => {
+                setUsingPadEditor(false)
+                setPadEditorTokens([])
+                setSelectedSFX(null)
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {!usingPadEditor && (
+        <div className="grid md:grid-cols-2 gap-4">
         {/* SFX List */}
         <div className="card-retro p-3">
           <div className="text-sm text-gray-300 mb-2">SFX List</div>
@@ -160,17 +240,31 @@ function SoundEditorPageInner() {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="text-white font-mono text-sm">{name}</div>
-                      <div className="text-gray-400 text-xs">{sfx[name].type}</div>
+                      <div className="text-gray-400 text-xs">
+                        {(sfx[name] as any).tokens ? 'sequence' : sfx[name].type}
+                      </div>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteSFX(name)
-                      }}
-                      className="text-red-400 hover:text-red-300 text-xs"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleUsePadEditor(name)
+                        }}
+                        className="text-retro-400 hover:text-retro-300 text-xs px-2 py-1 bg-gray-800 rounded"
+                        title="Edit with Pad Editor"
+                      >
+                        🎹 Pad Editor
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteSFX(name)
+                        }}
+                        className="text-red-400 hover:text-red-300 text-xs"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -281,9 +375,11 @@ function SoundEditorPageInner() {
             </div>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
-      <div className="card-retro p-3">
+      {!usingPadEditor && (
+        <div className="card-retro p-3">
         <div className="text-sm text-gray-300 mb-2">Usage in Lua</div>
         <pre className="text-xs text-gray-400 font-mono">
 {`-- Play a sound effect
@@ -297,6 +393,7 @@ rf.sfx("thrust", "off")
 rf.sfx("stopall")`}
         </pre>
       </div>
+      )}
     </div>
   )
 }

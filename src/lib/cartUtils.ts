@@ -22,10 +22,11 @@ export interface CartAssets {
 
 export interface SFXMap {
   [name: string]: {
-    type: 'sine' | 'noise' | 'thrust' | 'stopall'
+    type: 'sine' | 'noise' | 'thrust' | 'stopall' | 'sequence'
     freq?: number
     duration?: number
     gain?: number
+    tokens?: string[]  // For sequence type
   }
 }
 

@@ -16,14 +16,14 @@ const keyMappings: KeyMapping[] = [
   { button: 'LEFT', key: '← (Arrow Left)', code: 'ArrowLeft', category: 'dpad' },
   { button: 'RIGHT', key: '→ (Arrow Right)', code: 'ArrowRight', category: 'dpad' },
   // Action Buttons
-  { button: 'A', key: 'Z', code: 'KeyZ', category: 'action' },
-  { button: 'B', key: 'X', code: 'KeyX', category: 'action' },
-  { button: 'X', key: 'S', code: 'KeyS', category: 'action' },
-  { button: 'Y', key: 'A', code: 'KeyA', category: 'action' },
+  { button: 'A', key: 'A', code: 'KeyA', category: 'action' },
+  { button: 'B', key: 'S', code: 'KeyS', category: 'action' },
+  { button: 'X', key: 'Z', code: 'KeyZ', category: 'action' },
+  { button: 'Y', key: 'X', code: 'KeyX', category: 'action' },
   // System Buttons
-  { button: 'START', key: 'Enter ↵', code: 'Enter', category: 'system' },
-  { button: 'SELECT', key: 'Shift ⇧', code: 'Shift', category: 'system' },
-  { button: 'TURBO', key: 'Space', code: 'Space', category: 'system' },
+  { button: 'SELECT', key: 'Enter ↵', code: 'Enter', category: 'system' },
+  { button: 'START', key: 'Space', code: 'Space', category: 'system' },
+  { button: 'TURBO', key: 'Shift ⇧', code: 'ShiftLeft', category: 'system' },
 ];
 
 interface KeyboardMappingsProps {

@@ -27,15 +27,15 @@ const keyboardMap: Record<string, ButtonType> = {
   ArrowLeft: 'LEFT',
   ArrowRight: 'RIGHT',
   // Action Buttons
-  KeyZ: 'A',
-  KeyX: 'B',
-  KeyS: 'X',
-  KeyA: 'Y',
+  KeyA: 'A',
+  KeyS: 'B',
+  KeyZ: 'X',
+  KeyX: 'Y',
   // System Buttons
-  Enter: 'START',
-  ShiftLeft: 'SELECT',
-  ShiftRight: 'SELECT',
-  Space: 'TURBO',
+  Enter: 'SELECT',
+  Space: 'START',
+  ShiftLeft: 'TURBO',
+  ShiftRight: 'TURBO',
 };
 
 interface ControllerProps {

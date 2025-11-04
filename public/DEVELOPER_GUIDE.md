@@ -339,16 +339,16 @@ RetroForge uses a **universal 11-button input system** that works consistently a
 - `10` - **TURBO** - Modifier button (e.g., boost, run)
 
 **Default Keyboard Mappings:**
-- SELECT (0): `Q`, `Backspace`
-- START (1): `Enter`, `Escape`
-- UP (2): `ArrowUp`, `W`
-- DOWN (3): `ArrowDown`, `S`
-- LEFT (4): `ArrowLeft`, `A`
-- RIGHT (5): `ArrowRight`, `D`
-- A (6): `Z`, `Space`
-- B (7): `X`
-- X (8): `C`
-- Y (9): `V`
+- SELECT (0): `Enter`
+- START (1): `Space`
+- UP (2): `ArrowUp`
+- DOWN (3): `ArrowDown`
+- LEFT (4): `ArrowLeft`
+- RIGHT (5): `ArrowRight`
+- A (6): `A`
+- B (7): `S`
+- X (8): `Z`
+- Y (9): `X`
 - TURBO (10): `Left Shift`, `Right Shift`
 
 **Functions:**

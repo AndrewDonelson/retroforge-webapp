@@ -733,16 +733,6 @@ export default function ArcadeDetailPage() {
                 )}
               </div>
 
-              {/* WASM Input Notice */}
-              <div className="bg-gray-800 rounded-xl p-6 shadow-lg">
-                <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-3 text-sm">
-                  <p className="text-yellow-400 font-medium mb-1">⚠️ WASM Input Notice</p>
-                  <p className="text-yellow-300">
-                    WASM ↔ Engine Input is not working correctly. You will have to play on Desktop(s). We are working on the issue.
-                  </p>
-                </div>
-              </div>
-
               {/* Game Controls */}
               {/* Scale selector commented out - using auto-scaling */}
               {/* <div className="bg-gray-800 rounded-xl p-6 shadow-lg">

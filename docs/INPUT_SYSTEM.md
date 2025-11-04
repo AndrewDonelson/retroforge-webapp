@@ -8,16 +8,16 @@ RetroForge uses a **universal 11-button input system** designed for cross-platfo
 
 | Index | Name    | Purpose                          | Default Keys            |
 |-------|---------|----------------------------------|-------------------------|
-| 0     | SELECT  | Menu navigation, secondary action | `Q`, `Backspace`        |
-| 1     | START   | Pause/menu, primary action        | `Enter`, `Escape`       |
-| 2     | UP      | Directional input                 | `ArrowUp`, `W`           |
-| 3     | DOWN    | Directional input                 | `ArrowDown`, `S`         |
-| 4     | LEFT    | Directional input                 | `ArrowLeft`, `A`         |
-| 5     | RIGHT   | Directional input                 | `ArrowRight`, `D`        |
-| 6     | A       | Primary action button             | `Z`, `Space`             |
-| 7     | B       | Secondary action button           | `X`                      |
-| 8     | X       | Tertiary action button            | `C`                      |
-| 9     | Y       | Quaternary action button          | `V`                      |
+| 0     | SELECT  | Menu navigation, secondary action | `Enter`                 |
+| 1     | START   | Pause/menu, primary action        | `Space`                 |
+| 2     | UP      | Directional input                 | `ArrowUp`               |
+| 3     | DOWN    | Directional input                 | `ArrowDown`             |
+| 4     | LEFT    | Directional input                 | `ArrowLeft`             |
+| 5     | RIGHT   | Directional input                 | `ArrowRight`            |
+| 6     | A       | Primary action button             | `A`                     |
+| 7     | B       | Secondary action button           | `S`                     |
+| 8     | X       | Tertiary action button            | `Z`                     |
+| 9     | Y       | Quaternary action button          | `X`                     |
 | 10    | TURBO   | Modifier button (boost, run)      | `Left Shift`, `Right Shift` |
 
 ## Platform Support

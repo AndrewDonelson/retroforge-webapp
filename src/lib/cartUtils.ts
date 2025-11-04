@@ -44,11 +44,31 @@ export interface MountPoint {
   name?: string // Optional name for accessing by name in Lua
 }
 
+export interface SpriteFrame {
+  name: string // Frame name (alphanumeric, underscore, hyphen; starts with letter/underscore)
+  pixels: number[][] // 2D array of color indices (must match sprite width×height)
+  duration?: number // Frame duration in milliseconds (used for animations)
+}
+
+export interface AnimationSequence {
+  name: string // Animation name (alphanumeric, underscore, hyphen)
+  frameRefs: string[] // Array of frame names in sequence order
+  speed?: number // Speed multiplier (default: 1.0)
+  loop?: boolean // Whether animation loops (default: true)
+  loopType?: "forward" | "reverse" | "pingpong" // Loop type (default: "forward")
+}
+
 export interface SpriteData {
   width: number
   height: number
-  pixels: number[][] // 2D array of color indices (0-49, -1 for transparent)
+  type?: "static" | "frames" | "animation" // Sprite type (default: "static")
+  pixels?: number[][] // 2D array of color indices (for static sprites)
+  frames?: SpriteFrame[] // Array of frames (for frames/animation sprites)
+  animations?: AnimationSequence[] // Array of animations (for animation sprites)
   useCollision?: boolean // Enable collision detection with other sprites
+  isUI?: boolean // If true, sprite is UI element (not affected by physics, default: true)
+  lifetime?: number // Auto-destroy after milliseconds (0 = no limit, default: 0)
+  maxSpawn?: number // Maximum simultaneous instances (0 = no limit, default: 0)
   mountPoints?: MountPoint[] // Array of mount points (e.g., for bullets, thrusters)
 }
 

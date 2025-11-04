@@ -46,18 +46,27 @@
 - `rf.camera([x, y])` - Set camera offset. All drawing operations are offset by (x, y). Call with no arguments to reset (0, 0)
 
 ### Sprite Drawing
-- `rf.spr(name, x, y, [flip_x, flip_y])` - Draw sprite by name at position (x, y). Optional horizontal/vertical flipping
+- `rf.spr(name, x, y, [frameOrAnimation, flip_x, flip_y])` - Draw sprite by name
+  - **Static sprites**: `rf.spr("player", x, y, [flip_x, flip_y])`
+  - **Frames sprites**: `rf.spr("player", x, y, "frameName", [flip_x, flip_y])` - Requires frame name
+  - **Animation sprites**: `rf.spr("player", x, y, [animationName, flip_x, flip_y])` - Uses active animation or specified animation
 - `rf.sspr(name, sx, sy, sw, sh, dx, dy, [dw, dh, flip_x, flip_y])` - Draw sprite region. Scales from source (sx, sy, sw, sh) to destination (dx, dy, dw, dh)
 
 ### Sprite Creation and Editing
 
-#### `rf.newSprite(name, width, height)`
-Creates a new empty sprite (all pixels transparent). Returns a sprite table.
+#### `rf.newSprite(name, width, height, [isUI])`
+Creates a new empty static sprite (all pixels transparent). Returns a sprite table.
 
 **Parameters:**
 - `name` (string): Unique name for the sprite
-- `width` (number): Sprite width in pixels (1-256)
-- `height` (number): Sprite height in pixels (1-256)
+- `width` (number): Sprite width in pixels (2-256)
+- `height` (number): Sprite height in pixels (2-256)
+- `isUI` (boolean, optional): Default `true` - If `true`, sprite is UI element
+
+**Size Restrictions:**
+- **Minimum**: 2×2 pixels (all sprites)
+- **Gameplay sprites** (`isUI=false`): 2×2 to 32×32 (any size)
+- **UI sprites** (`isUI=true`): 2×2 to 256×256 (both dimensions must be divisible by 2)
 
 **Returns:**
 - (table): Sprite data table with properties: `width`, `height`, `pixels`, `useCollision`, `isUI`, `lifetime`, `maxSpawn`, `mountPoints`
@@ -99,6 +108,122 @@ rf.setSpriteProperty("bullet", "lifetime", 1000)
 -- Now use it
 rf.spr("bullet", 100, 100)
 ```
+
+#### `rf.newSpriteFrames(name, width, height, [isUI])`
+Creates a new multi-frame sprite (no frames initially). Returns a sprite table.
+
+**Parameters:**
+- `name` (string): Unique name for the sprite
+- `width` (number): Frame width in pixels (2-256)
+- `height` (number): Frame height in pixels (2-256)
+- `isUI` (boolean, optional): Default `true`
+
+**Size Restrictions:** Same as `rf.newSprite()`
+
+**Returns:**
+- (table): Sprite data table with `type: "frames"`
+
+**Example:**
+```lua
+local player = rf.newSpriteFrames("player", 16, 16, false)
+-- Now add frames with rf.addSpriteFrame()
+```
+
+#### `rf.addSpriteFrame(spriteName, frameName, pixels)`
+Adds a frame to a frames or animation sprite.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite (must be frames or animation type)
+- `frameName` (string): Frame name (alphanumeric, underscore, hyphen; starts with letter/underscore)
+- `pixels` (table): 2D array of palette indices matching sprite width×height
+
+**Example:**
+```lua
+local pixels = {
+  {0, 0, 0, 0},
+  {0, 1, 1, 0},
+  {0, 1, 1, 0},
+  {0, 0, 0, 0}
+}
+rf.addSpriteFrame("player", "idle", pixels)
+```
+
+#### `rf.addSpriteAnimation(spriteName, animName, frameRefs, [speed], [loop], [loopType])`
+Adds an animation sequence to an animation sprite.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite (must be animation type)
+- `animName` (string): Animation name (alphanumeric, underscore, hyphen)
+- `frameRefs` (table): Array of frame names in sequence order
+- `speed` (number, optional): Speed multiplier (default: 1.0)
+- `loop` (boolean, optional): Whether to loop (default: true)
+- `loopType` (string, optional): `"forward"`, `"reverse"`, or `"pingpong"` (default: "forward")
+
+**Example:**
+```lua
+local frameRefs = {"walk_1", "walk_2", "walk_3"}
+rf.addSpriteAnimation("player", "walk", frameRefs, 1.0, true, "forward")
+```
+
+#### `rf.playAnimation(spriteName, animationName)`
+Starts playing an animation for all instances of the sprite.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite (must be animation type)
+- `animationName` (string): Animation name to play
+
+**Note:** Animations never auto-play - must explicitly call this function.
+
+**Example:**
+```lua
+rf.playAnimation("player", "walk")
+```
+
+#### `rf.pauseAnimation(spriteName)`
+Pauses the current animation (maintains current frame position).
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+
+#### `rf.resumeAnimation(spriteName)`
+Resumes a paused animation.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+
+#### `rf.stopAnimation(spriteName)`
+Stops the current animation (resets to frame 0).
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+
+#### `rf.setAnimationSpeed(spriteName, speed)`
+Sets the animation speed multiplier for all instances.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+- `speed` (number): Speed multiplier (1.0 = normal, 2.0 = double speed, 0.5 = half speed)
+
+**Example:**
+```lua
+rf.setAnimationSpeed("player", 2.0)  -- Double speed
+```
+
+#### `rf.setAnimationFrame(spriteName, frameIndex)`
+Sets the current frame index for all instances.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+- `frameIndex` (number): Frame index in the current animation (0-based)
+
+#### `rf.getAnimationFrame(spriteName)`
+Returns the current frame index from the first available instance.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+
+**Returns:**
+- (number): Current frame index, or `-1` if no active animation
 
 #### `rf.setSpriteProperty(sprite_name, property, value)`
 Sets a sprite property. Available properties: `useCollision`, `isUI`, `lifetime`, `maxSpawn`.
@@ -263,7 +388,10 @@ Get sprite data by name (from `sprites.json` or created with `rf.newSprite`). Re
 {
   width = 16,
   height = 16,
-  pixels = {{row1}, {row2}, ...},  -- 2D array of color indices
+  type = "static",    -- "static", "frames", or "animation"
+  pixels = {{row1}, {row2}, ...},  -- 2D array (for static sprites)
+  frames = {...},     -- Array of frames (for frames/animation sprites)
+  animations = {...}, -- Array of animations (for animation sprites)
   useCollision = true,
   isUI = false,      -- If true, sprite is UI element (not affected by physics)
   lifetime = 0,       -- Lifetime in milliseconds (0 = no limit)

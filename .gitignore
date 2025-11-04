@@ -47,3 +47,8 @@ lerna-debug.log*
 # Misc
 *.pem
 
+# Screenshots
+screenshot-*.png
+screenshot-*.jpg
+screenshot-*.jpeg
+

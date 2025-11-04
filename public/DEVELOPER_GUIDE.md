@@ -460,9 +460,17 @@ rf.print_anchored("GAME OVER", "middlecenter", 15)
 
 #### Sprites
 
-**`rf.spr(name, x, y, [flip_x, flip_y])`** - Draw sprite
+**`rf.spr(name, x, y, [frameOrAnimation, flip_x, flip_y])`** - Draw sprite
 ```lua
+-- Static sprite
 rf.spr("player", player.x, player.y)
+
+-- Frames sprite (specify frame name)
+rf.spr("player", player.x, player.y, "idle")
+rf.spr("player", player.x, player.y, "left")
+
+-- Animation sprite (uses active animation or specify animation name)
+rf.spr("enemy", enemy.x, enemy.y, "walk")
 rf.spr("enemy", enemy.x, enemy.y, true, false)  -- Flipped horizontally
 ```
 
@@ -489,9 +497,48 @@ rf.clip()  -- Disable clipping
 
 #### Creating Sprites
 
-**`rf.newSprite(name, width, height)`** - Create empty sprite
+**`rf.newSprite(name, width, height, [isUI])`** - Create empty static sprite
 ```lua
-local bullet = rf.newSprite("bullet", 8, 8)
+-- Create gameplay sprite (isUI=false)
+local bullet = rf.newSprite("bullet", 8, 8, false)
+
+-- Create UI sprite (isUI=true, default)
+local hud = rf.newSprite("hud", 64, 64, true)
+```
+
+**Size Restrictions:**
+- **Minimum**: 2×2 pixels (all sprites)
+- **Gameplay** (`isUI=false`): 2×2 to 32×32 (any size)
+- **UI** (`isUI=true`): 2×2 to 256×256 (both dimensions divisible by 2)
+
+**`rf.newSpriteFrames(name, width, height, [isUI])`** - Create multi-frame sprite
+```lua
+-- Create frames sprite for directional states
+rf.newSpriteFrames("player", 16, 16, false)
+
+-- Add frames
+rf.addSpriteFrame("player", "idle", idlePixels)
+rf.addSpriteFrame("player", "left", leftPixels)
+rf.addSpriteFrame("player", "right", rightPixels)
+
+-- Draw specific frame
+rf.spr("player", x, y, "idle")
+```
+
+**Animation Control:**
+```lua
+-- Add animation
+local frameRefs = {"walk_1", "walk_2", "walk_3"}
+rf.addSpriteAnimation("player", "walk", frameRefs, 1.0, true, "forward")
+
+-- Control animation
+rf.playAnimation("player", "walk")
+rf.pauseAnimation("player")
+rf.resumeAnimation("player")
+rf.stopAnimation("player")
+rf.setAnimationSpeed("player", 2.0)  -- Double speed
+rf.setAnimationFrame("player", 2)     -- Jump to frame 2
+local frame = rf.getAnimationFrame("player")  -- Get current frame
 ```
 
 #### Drawing to Sprites

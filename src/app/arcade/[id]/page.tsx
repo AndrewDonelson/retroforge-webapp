@@ -411,12 +411,23 @@ export default function ArcadeDetailPage() {
       return;
     }
     
-    const cvs = canvasRef.current!; const ctx = cvs.getContext("2d")!;
-    const width = 480, height = 270; cvs.width = width; cvs.height = height;
+    const cvs = canvasRef.current!;
+    const ctx = cvs.getContext("2d", { alpha: false, desynchronized: true })!;
+    const width = 480, height = 270;
+    cvs.width = width;
+    cvs.height = height;
+    
     // Don't set explicit canvas style dimensions - let CSS control the display size
     // The canvas internal resolution is 480x270, but CSS will scale it to fit the container
-    // Pre-allocate ImageData once and reuse it
-    const img = ctx.createImageData(width, height);
+    
+    // Create offscreen canvas for double buffering (back buffer)
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = width;
+    offscreenCanvas.height = height;
+    const offscreenCtx = offscreenCanvas.getContext("2d", { alpha: false, willReadFrequently: false })!;
+    
+    // Pre-allocate ImageData once and reuse it (for offscreen canvas)
+    const img = offscreenCtx.createImageData(width, height);
     // Pre-allocate buffer for pixel transfer (reuse to avoid allocations)
     const pixelBuf = new Uint8Array(img.data.length);
     
@@ -425,7 +436,9 @@ export default function ArcadeDetailPage() {
     runFrame();
     getPixels(pixelBuf);
     img.data.set(pixelBuf);
-    ctx.putImageData(img, 0, 0);
+    offscreenCtx.putImageData(img, 0, 0);
+    // Blit offscreen canvas to display canvas (smooth, no flicker)
+    ctx.drawImage(offscreenCanvas, 0, 0);
     
     // Focus the canvas so it can receive keyboard events
     const focusCanvas = () => {
@@ -461,7 +474,10 @@ export default function ArcadeDetailPage() {
       getPixels(pixelBuf);
       // Copy directly to ImageData (more efficient than creating new arrays)
       img.data.set(pixelBuf);
-      ctx.putImageData(img, 0, 0); 
+      // Draw to offscreen canvas (back buffer)
+      offscreenCtx.putImageData(img, 0, 0);
+      // Blit offscreen canvas to display canvas using drawImage (hardware accelerated, no flicker)
+      ctx.drawImage(offscreenCanvas, 0, 0);
       rafRef.current = requestAnimationFrame(loop); 
     };
     rafRef.current = requestAnimationFrame(loop);

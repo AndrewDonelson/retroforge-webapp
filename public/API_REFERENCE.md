@@ -294,7 +294,7 @@ rf.setSpriteProperty("projectile", "maxSpawn", 10)  -- Max 10 at once
 
 ## Input
 
-RetroForge uses a **universal 11-button input system** that works consistently across all platforms (desktop, mobile, tablet).
+RetroForge uses a **universal 11-button input system** that works consistently across all platforms (desktop, mobile, tablet). All button functions use numeric indices (0-10).
 
 ### Button Constants
 - `0` - **SELECT** - Menu navigation, secondary action
@@ -323,7 +323,7 @@ RetroForge uses a **universal 11-button input system** that works consistently a
 - **TURBO** (10): `Left Shift`, `Right Shift`
 
 ### Mobile/Tablet
-On mobile and tablet devices in portrait mode, an on-screen virtual controller is automatically displayed below the canvas. The controller maps directly to the 11-button system.
+On mobile and tablet devices in portrait mode, an on-screen virtual controller is automatically displayed below the canvas. The controller maps directly to the 11-button system with optimized layouts for portrait (large D-pad top-left, action buttons bottom-right) and landscape (traditional 3-column layout).
 
 ### Input Functions
 
@@ -437,6 +437,201 @@ function _UPDATE(dt)
   end
 end
 ```
+
+## Image Tool API
+
+The Image Tool (`rf.imgtool.*`) provides image processing functions for converting PNG images to RetroForge-compatible formats. This includes color quantization, palette mapping, image scaling, and sprite generation.
+
+### `rf.imgtool.quantize(png_data, options)`
+Reduces an image to a 50-color palette using quantization algorithms.
+
+**Parameters:**
+- `png_data` (string|userdata): PNG image data (file path or userdata)
+- `options` (table, optional): Quantization options
+  - `dither` (string): Dithering algorithm - `"floyd-steinberg"`, `"ordered"`, or `"none"` (default: `"floyd-steinberg"`)
+  - `alpha_threshold` (number): Alpha threshold 0-255 (default: 128)
+  - `enforce_black_white` (boolean): Ensure black/white at indices 0/1 (default: `true`)
+
+**Returns:**
+- (table): Array of 50 hex color strings
+
+**Example:**
+```lua
+local palette = rf.imgtool.quantize("assets/art.png", {
+    dither = "floyd-steinberg",
+    alpha_threshold = 128
+})
+-- palette is now an array of 50 hex colors
+```
+
+### `rf.imgtool.map_palette(png_data, palette, options)`
+Maps an image to palette indices using closest color matching.
+
+**Parameters:**
+- `png_data` (string|userdata): PNG image data
+- `palette` (table|string): Palette (array of 50 hex colors or JSON file path)
+- `options` (table, optional): Mapping options
+  - `dither` (string): Dithering algorithm (default: `"floyd-steinberg"`)
+  - `alpha_threshold` (number): Alpha threshold 0-255 (default: 128)
+  - `transparent_index` (number): Index for transparent pixels (default: `-1`)
+
+**Returns:**
+- (table): 2D array of palette indices `[[row1], [row2], ...]`
+
+**Example:**
+```lua
+local indices = rf.imgtool.map_palette("assets/sprite.png", palette, {
+    dither = "ordered",
+    alpha_threshold = 128
+})
+-- indices is a 2D array: indices[y][x] = palette index
+```
+
+### `rf.imgtool.scale(png_data, options)`
+Scales an image to target dimensions.
+
+**Parameters:**
+- `png_data` (string|userdata): PNG image data
+- `options` (table, optional): Scaling options
+  - `width` (number): Target width (default: 16)
+  - `height` (number): Target height (default: 16)
+  - `algorithm` (string): Scaling algorithm - `"nearest"`, `"bilinear"`, or `"bicubic"` (default: `"nearest"`)
+  - `ensure_divisible` (boolean): Ensure dimensions divisible by 2 (default: `true`)
+  - `preserve_aspect` (boolean): Maintain aspect ratio (default: `false`)
+
+**Returns:**
+- (table): 3D array `[[[R,G,B,A]], ...]` representing scaled image pixels
+
+**Example:**
+```lua
+local rgb_data = rf.imgtool.scale("assets/large.png", {
+    width = 32,
+    height = 32,
+    algorithm = "bilinear"
+})
+-- rgb_data[y][x] = {R, G, B, A}
+```
+
+### `rf.imgtool.to_sprite(png_data, palette, options)`
+Performs complete PNG-to-sprite conversion pipeline (quantize, map, scale).
+
+**Parameters:**
+- `png_data` (string|userdata): PNG image data
+- `palette` (table|string): Palette (array of 50 hex colors or JSON file path)
+- `options` (table, optional): Conversion options
+  - `name` (string): Sprite name (default: `"sprite"`)
+  - `width` (number): Target width in pixels (default: 16)
+  - `height` (number): Target height in pixels (default: 16)
+  - `collision` (boolean): Enable physics collision (default: `false`)
+  - `ui` (boolean): UI sprite flag (default: `false`)
+  - `lifetime` (number): Auto-destroy after milliseconds (default: 0)
+  - `max_spawn` (number): Max simultaneous instances (default: 0)
+  - `dither` (string): Dithering algorithm (default: `"floyd-steinberg"`)
+  - `alpha_threshold` (number): Alpha threshold 0-255 (default: 128)
+
+**Returns:**
+- (table): Sprite data structure with `width`, `height`, `pixels`, etc.
+
+**Example:**
+```lua
+local sprite = rf.imgtool.to_sprite("assets/player.png", palette, {
+    name = "player",
+    width = 32,
+    height = 32,
+    collision = true
+})
+```
+
+## Tile2ISO Tool
+
+The Tile2ISO tool (`tile2iso`) converts 2D top-down sprites into isometric (2.5D) tiles by combining three textures: a top face, left side face, and right side face. The tool supports multiple lighting modes to create depth and dimensionality.
+
+### Command-Line Usage
+
+```bash
+tile2iso convert \
+  --sprites assets/sprites.json \
+  --palette assets/palette.json \
+  --top top_sprite_name \
+  --left left_sprite_name \
+  --right right_sprite_name \
+  [options]
+```
+
+**Required Flags:**
+- `--sprites` (string): Path to sprites.json file
+- `--palette` (string): Path to palette.json file
+- `--top` (string): Name of top sprite
+- `--left` (string): Name of left side sprite
+- `--right` (string): Name of right side sprite
+
+**Optional Flags:**
+- `--output` / `-o` (string): Output file path (default: auto-generated)
+- `--name` (string): Name for output tile sprite (default: `{top}_{left}_{right}_iso`)
+- `--top-frame` (string): Frame name for top sprite (for frames/animation types)
+- `--left-frame` (string): Frame name for left sprite (for frames/animation types)
+- `--right-frame` (string): Frame name for right sprite (for frames/animation types)
+- `--height` (int): Height of side faces in pixels (default: 16)
+- `--lighting` (string): Lighting mode: `normal`, `basic`, `full`, `gradient` (default: `gradient`)
+- `--tile-width` (int): Width of isometric tile (default: 64)
+- `--tile-height` (int): Height of isometric tile top face (default: 32)
+- `--update`: Update sprites.json with new tile (instead of creating separate file)
+
+**Lighting Modes:**
+- `normal`: No lighting adjustments (draw side tiles exactly as provided)
+- `basic`: Uniform brightness adjustment (left: +20%, right: -20%)
+- `full`: Enhanced lighting at top/bottom 20% regions (stylized/cel-shaded)
+- `gradient`: Smooth vertical gradient simulating light from above (recommended)
+
+**Example:**
+```bash
+# Create isometric tile with gradient lighting
+tile2iso convert \
+  --sprites assets/sprites.json \
+  --palette assets/palette.json \
+  --top grass_top \
+  --left grass_side \
+  --right grass_side \
+  --name grass_tile \
+  --lighting gradient \
+  --update
+
+# Use specific frames from multi-frame sprites
+tile2iso convert \
+  --sprites assets/sprites.json \
+  --palette assets/palette.json \
+  --top stone_top \
+  --top-frame default \
+  --left stone_side \
+  --left-frame default \
+  --right stone_side \
+  --right-frame default \
+  --name stone_tile \
+  --update
+```
+
+**Sprite Type Support:**
+- **Static sprites**: Use sprite name directly (no frame name needed)
+- **Frames sprites**: Specify frame name with `--top-frame`, `--left-frame`, `--right-frame`
+- **Animation sprites**: Same as frames sprites - specify which frame to use
+
+**Output:**
+- Creates a new static sprite in sprites.json (or separate file if `--update` not used)
+- Output sprite dimensions: `tile-width × (tile-height + side-height)`
+- The isometric tile is a composite of:
+  1. Top face (isometric diamond projection)
+  2. Left side face (with lighting applied)
+  3. Right side face (with lighting applied)
+
+### `rf.imgtool.load_png(filename)`
+Load PNG image from cart assets (requires asset loader integration).
+
+**Note:** This function requires cart asset loading support. Currently a placeholder.
+
+### `rf.imgtool.load_palette(filename)`
+Load palette from JSON file in cart assets (requires asset loader integration).
+
+**Note:** This function requires cart asset loading support. Currently a placeholder.
 
 ## System
 
@@ -691,7 +886,7 @@ function _INIT()
 end
 
 function _ENTER()
-  -- Called every activation
+  -- Called every time state becomes active
   selected = 1
   rf.music("menu_theme")
 end
@@ -735,6 +930,7 @@ function _DRAW()
 end
 
 function _EXIT()
+  -- Called when leaving state
   rf.music("stopall")
 end
 
@@ -763,21 +959,6 @@ end
 - If there's a syntax error in the module, `rf.import()` will raise a runtime error with details
 
 ---
-
-**Example - Pause Menu Overlay:**
-```lua
-local PauseState = {
-  draw = function()
-    -- Draw the previous state (dimmed game)
-    game.drawPreviousState()
-    
-    -- Draw semi-transparent overlay
-    rf.rectfill(0, 0, 480, 270, 0) -- Assuming color 0 with alpha
-    
-    -- Draw pause menu
-    rf.print("PAUSED", 200, 100, 7)
-  end
-}
 ```
 
 ## Helper Functions
@@ -870,4 +1051,105 @@ Get current time in seconds (Unix timestamp). Only works in development mode.
 retroforge --folder examples/helloworld --window
 ```
 When running from a folder, files are automatically reloaded when modified.
+
+## Multiplayer API
+
+RetroForge supports multiplayer games with up to 6 players via WebRTC networking. The engine handles all networking automatically - you just need to register tables for synchronization and check if you're the host.
+
+### Connection Information
+
+- `rf.is_multiplayer()` - Returns `true` if game is in multiplayer mode, `false` for solo play
+- `rf.player_count()` - Returns total number of connected players (1-6). Always >= 1 (includes local player)
+- `rf.my_player_id()` - Returns the local player's ID (1-6). Host is always player_id = 1
+- `rf.is_host()` - Returns `true` if local player is the host. Only host runs game logic in `_update()`
+
+### State Synchronization
+
+- `rf.network_sync(table, tier)` - Register a Lua table for automatic synchronization
+  - `table`: Lua table to synchronize (e.g., `players`, `score`)
+  - `tier`: Synchronization frequency - `"fast"` (30-60/sec), `"moderate"` (15/sec), or `"slow"` (5/sec)
+  - Example: `rf.network_sync(players, "fast")` - Sync player positions smoothly
+  - Example: `rf.network_sync(score, "slow")` - Sync score updates less frequently
+  - Only host can modify tables that aren't keyed by player_id
+  - Tables keyed by player_id: only that player can modify their entry
+
+- `rf.network_unsync(table)` - Unregister a table from synchronization
+  - Stops syncing the table
+  - Useful for cleanup or dynamic objects
+
+### Input Handling (Host Only)
+
+- `rf.btn(player_id, button)` - Check another player's button state (host only)
+  - `player_id`: 1-6
+  - `button`: 0-15 (button index)
+  - Returns `true` if that player is pressing the button
+  - Only works in host's code
+  - Non-hosts use normal `rf.btn(button)` for local player
+
+**Example:**
+```lua
+function _update()
+  if rf.is_host() then
+    -- Host can check all players' inputs
+    for id = 1, rf.player_count() do
+      if rf.btn(id, 0) then  -- Check if Player id is pressing left
+        players[id].vx = -2
+      end
+    end
+  else
+    -- Non-host: just use normal input
+    if rf.btn(0) then
+      -- Local input handling (if needed)
+    end
+  end
+end
+```
+
+### Multiplayer Example
+
+```lua
+-- Simple multiplayer platformer
+players = {}
+score = {}
+
+function _init()
+  local player_count = rf.is_multiplayer() and rf.player_count() or 1
+  
+  -- Create player for each connected player
+  for i = 1, player_count do
+    players[i] = {x = 100*i, y = 100, vx = 0, vy = 0}
+    score[i] = 0
+  end
+  
+  -- Register for sync (multiplayer only)
+  if rf.is_multiplayer() then
+    rf.network_sync(players, "fast")   -- Smooth movement
+    rf.network_sync(score, "slow")     -- Less frequent updates
+  end
+end
+
+function _update()
+  if rf.is_multiplayer() and rf.is_host() then
+    -- Host runs game logic
+    for id = 1, rf.player_count() do
+      if rf.btn(id, 0) then players[id].vx = -3 end
+      if rf.btn(id, 1) then players[id].vx = 3 end
+      players[id].x = players[id].x + players[id].vx
+    end
+    -- Engine automatically syncs players table!
+  else
+    -- Solo mode or non-host (engine handles input sync automatically)
+  end
+end
+
+function _draw()
+  rf.clear_i(0)
+  for id, p in pairs(players) do
+    rf.rectfill(p.x, p.y, p.x+16, p.y+16, 7)
+    rf.print("P" .. id, p.x, p.y-10, 7)
+  end
+end
+```
+
+**Note:** Multiplayer functionality requires WebRTC connections which are established through the RetroForge webapp platform. See `RetroForge.V2.md` for complete multiplayer architecture details.
 

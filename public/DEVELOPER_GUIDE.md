@@ -315,11 +315,43 @@ RetroForge uses a **palette system** with 50 colors (indices 0-49):
 - **Transparent**: Use `-1` for transparent pixels
 - **Palette selection**: Choose from predefined palettes (PICO-8, SNES, etc.)
 - **Color remapping**: Use `rf.pal(c0, c1)` to remap colors
+- **State-based switching**: Each state can use a different palette
 
 ```lua
 rf.palette_set("PICO-8")  -- Use PICO-8 palette
 rf.rectfill(100, 100, 150, 150, 7)  -- Color 7 from palette
 ```
+
+**State-Based Palette Switching:**
+
+Each state can load and use a different palette, allowing you to use more than 50 colors across your game (but only 50 at a time). This is perfect for:
+- Different moods per level/state
+- Day/night cycles
+- Animated color transitions
+- Themed areas (e.g., fire level = red palette, ice level = blue palette)
+
+```lua
+-- menu_state.lua
+function _ENTER()
+  rf.palette_set("Pastel 50")  -- Soft colors for menu
+end
+
+-- play_state.lua
+function _ENTER()
+  rf.palette_set("Neon 50")  -- Bright colors for gameplay
+end
+
+-- Animated palette switching
+function _UPDATE(dt)
+  timer = timer + dt
+  if timer >= 2.0 then
+    timer = 0
+    rf.palette_set("Cyberpunk 50")  -- Switch every 2 seconds
+  end
+end
+```
+
+**Important:** Only one palette is active at a time. All drawing operations use the currently active palette.
 
 ### Input System
 
@@ -460,9 +492,17 @@ rf.print_anchored("GAME OVER", "middlecenter", 15)
 
 #### Sprites
 
-**`rf.spr(name, x, y, [flip_x, flip_y])`** - Draw sprite
+**`rf.spr(name, x, y, [frameOrAnimation, flip_x, flip_y])`** - Draw sprite
 ```lua
+-- Static sprite
 rf.spr("player", player.x, player.y)
+
+-- Frames sprite (specify frame name)
+rf.spr("player", player.x, player.y, "idle")
+rf.spr("player", player.x, player.y, "left")
+
+-- Animation sprite (uses active animation or specify animation name)
+rf.spr("enemy", enemy.x, enemy.y, "walk")
 rf.spr("enemy", enemy.x, enemy.y, true, false)  -- Flipped horizontally
 ```
 
@@ -489,9 +529,48 @@ rf.clip()  -- Disable clipping
 
 #### Creating Sprites
 
-**`rf.newSprite(name, width, height)`** - Create empty sprite
+**`rf.newSprite(name, width, height, [isUI])`** - Create empty static sprite
 ```lua
-local bullet = rf.newSprite("bullet", 8, 8)
+-- Create gameplay sprite (isUI=false)
+local bullet = rf.newSprite("bullet", 8, 8, false)
+
+-- Create UI sprite (isUI=true, default)
+local hud = rf.newSprite("hud", 64, 64, true)
+```
+
+**Size Restrictions:**
+- **Minimum**: 2×2 pixels (all sprites)
+- **Gameplay** (`isUI=false`): 2×2 to 32×32 (any size)
+- **UI** (`isUI=true`): 2×2 to 256×256 (both dimensions divisible by 2)
+
+**`rf.newSpriteFrames(name, width, height, [isUI])`** - Create multi-frame sprite
+```lua
+-- Create frames sprite for directional states
+rf.newSpriteFrames("player", 16, 16, false)
+
+-- Add frames
+rf.addSpriteFrame("player", "idle", idlePixels)
+rf.addSpriteFrame("player", "left", leftPixels)
+rf.addSpriteFrame("player", "right", rightPixels)
+
+-- Draw specific frame
+rf.spr("player", x, y, "idle")
+```
+
+**Animation Control:**
+```lua
+-- Add animation
+local frameRefs = {"walk_1", "walk_2", "walk_3"}
+rf.addSpriteAnimation("player", "walk", frameRefs, 1.0, true, "forward")
+
+-- Control animation
+rf.playAnimation("player", "walk")
+rf.pauseAnimation("player")
+rf.resumeAnimation("player")
+rf.stopAnimation("player")
+rf.setAnimationSpeed("player", 2.0)  -- Double speed
+rf.setAnimationFrame("player", 2)     -- Jump to frame 2
+local frame = rf.getAnimationFrame("player")  -- Get current frame
 ```
 
 #### Drawing to Sprites
@@ -691,7 +770,7 @@ local val = rf.peek(0x1000)
 **`rf.poke2(addr, val)`** / **`rf.peek2(addr)`** - 16-bit operations
 **`rf.poke4(addr, val)`** / **`rf.peek4(addr)`** - 32-bit operations
 
-#### Cart Storage (64KB)
+#### Cart Storage (512KB)
 
 **`rf.cstore(dest_addr, src_addr, len)`** - Save to cart storage
 ```lua
@@ -784,29 +863,65 @@ Game Over (ChangeState)
 - Built-in splash and credits screens
 - Module-based organization
 
+### Engine Startup & State Flow
+
+The engine automatically handles the startup sequence:
+
+1. **Engine Splash Screen** (automatic, if not in debug mode):
+   - Displays for 2 seconds
+   - Can be skipped by pressing any button
+   - Automatically transitions to the next state
+
+2. **Second State** (automatic):
+   - If `splash_state.lua` exists → transitions to `"splash"` state (your custom splash)
+   - Else → transitions to `initialState` (defaults to `"menu"`)
+
+3. **NO manual state transitions needed** - the engine handles everything automatically
+
+**Important Notes:**
+- If you only have one state, name it `menu_state.lua` so it registers as `"menu"` and matches the engine's default
+- Import states directly in `main.lua` (not in `_INIT()` function)
+- Do NOT call `game.changeState()` manually at startup - the engine handles transitions automatically
+- The engine splash screen is skipped in debug mode (when running from a folder)
+
 ### Module-Based State System
 
 Instead of manually registering states, use `rf.import()` to automatically load and register states from separate files:
 
 ```lua
 -- main.lua
-rf.import("menu_state.lua")  -- Registers as "menu"
-rf.import("play_state.lua")  -- Registers as "play"
+-- Import states at module level (not in _INIT())
+local menu_state = rf.import("menu_state.lua")  -- Registers as "menu"
+local play_state = rf.import("play_state.lua")  -- Registers as "play"
+
+-- The engine will:
+-- 1. Show engine splash (automatic, 2 seconds or any input to skip)
+-- 2. Transition to menu (automatic, since "menu" is the default initialState)
+-- 3. Your states handle transitions from there
 
 -- menu_state.lua
 local selected = 1
 
 function _INIT()
-  -- One-time setup
+  -- One-time setup (called once when state is first created)
+  if game then
+    game.addCredit("Game", "My Game", "A Retro Game")
+  end
+end
+
+function _ENTER()
+  -- Called every time state becomes active
+  selected = 1
 end
 
 function _HANDLE_INPUT()
-  if rf.btnp(2) then selected = selected - 1 end
-  if rf.btnp(4) then game.changeState("play") end
+  -- Handle button presses (instant actions)
+  if rf.btnp(2) then selected = selected - 1 end  -- UP button
+  if rf.btnp(0) or rf.btnp(6) then game.changeState("play") end  -- SELECT or A button
 end
 
 function _UPDATE(dt)
-  -- Update logic
+  -- Update logic (dt is frame-rate independent delta time in seconds)
 end
 
 function _DRAW()
@@ -814,8 +929,13 @@ function _DRAW()
   rf.print("MENU", 200, 100, 7)
 end
 
+function _EXIT()
+  -- Called when leaving state
+  rf.music("stopall")
+end
+
 function _DONE()
-  -- Cleanup
+  -- Cleanup (called once when state is destroyed)
 end
 ```
 

@@ -28,22 +28,31 @@ export default function InitPage() {
     setResult(null)
 
     try {
-      // Fetch all cart files from the public directory
-      const cartsToSync = [
-        { id: 'helloworld', url: '/carts/helloworld.rf' },
-        { id: 'moon-lander', url: '/carts/moon-lander.rf' },
-        { id: 'tron-lightcycles', url: '/carts/tron-lightcycles.rf' },
-        { id: 'multiplayer-platformer', url: '/carts/multiplayer-platformer.rf' },
-        { id: 'kitchen-sink', url: '/carts/kitchen-sink.rf' },
-        { id: 'galaxy', url: '/carts/galaxy.rf' },
+      // Known cart files - we'll try to fetch all of them
+      // This list should include all .rf files in /public/carts (excluding .backup files)
+      const knownCarts = [
+        'animated-character',
+        'galaxy',
+        'helloworld',
+        'kitchen-sink',
+        'moon-lander',
+        'multiplayer-platformer',
+        'pole-position',
+        'tron-lightcycles',
       ]
 
+      // Fetch all cart files from the public directory
       const cartsData = await Promise.all(
-        cartsToSync.map(async (cart) => {
+        knownCarts.map(async (cartId) => {
           try {
-            const response = await fetch(cart.url)
+            const url = `/carts/${cartId}.rf`
+            const response = await fetch(url)
             if (!response.ok) {
-              throw new Error(`Failed to fetch ${cart.id}: ${response.status} ${response.statusText}`)
+              // Skip if file doesn't exist (404) - don't throw error
+              if (response.status === 404) {
+                return null
+              }
+              throw new Error(`Failed to fetch ${cartId}: ${response.status} ${response.statusText}`)
             }
             const arrayBuffer = await response.arrayBuffer()
             const uint8Array = new Uint8Array(arrayBuffer)
@@ -55,15 +64,24 @@ export default function InitPage() {
             }
             const base64 = btoa(binaryString)
             
-            return { id: cart.id, base64 }
+            return { id: cartId, base64 }
           } catch (error: any) {
-            throw new Error(`Failed to fetch ${cart.id}: ${error.message}`)
+            // Log error but don't fail the entire sync
+            console.error(`Failed to fetch ${cartId}:`, error)
+            return null
           }
         })
       )
 
+      // Filter out nulls (failed fetches)
+      const validCartsData = cartsData.filter((cart): cart is { id: string; base64: string } => cart !== null)
+
+      if (validCartsData.length === 0) {
+        throw new Error('No cart files found to sync')
+      }
+
       // Send all cart data to Convex action
-      const res = await syncExampleCarts({ cartsData })
+      const res = await syncExampleCarts({ cartsData: validCartsData })
       setResult(res)
     } catch (error: any) {
       setResult({

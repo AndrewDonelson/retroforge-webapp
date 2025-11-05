@@ -1,0 +1,54 @@
+{
+  "name": "RetroForge",
+  "short_name": "RetroForge",
+  "description": "A modern fantasy console for creating retro-style games",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#8b5cf6",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment", "developer"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Editor",
+      "short_name": "Editor",
+      "description": "Open the sprite editor",
+      "url": "/editor/sprite",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Arcade",
+      "short_name": "Arcade",
+      "description": "Browse and play games",
+      "url": "/arcade",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
+

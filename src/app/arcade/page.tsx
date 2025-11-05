@@ -6,7 +6,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import Controller from '@/components/Controller/Controller';
 import { useController, isMobilePortrait } from '@/lib/useController';
-import { setupInput } from '@/lib/wasmInterface';
+import { setupInput, initAudio } from '@/lib/wasmInterface';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,42 +112,10 @@ export default function ArcadePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // Install simple WebAudio shims used by WASM audio bridge
+  // Install WebAudio shims using centralized implementation from wasmInterface
   function ensureAudio() {
     if (!audioRef.current) {
-      audioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const ctx = audioRef.current;
-      (window as any).rf_audio_playSine = (freq: number, dur: number, gain: number) => {
-        if (!ctx) return;
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        g.gain.value = gain;
-        osc.connect(g).connect(ctx.destination);
-        const now = ctx.currentTime;
-        osc.start(now);
-        osc.stop(now + Math.max(0.01, dur));
-      };
-      (window as any).rf_audio_playNoise = (dur: number, gain: number) => {
-        if (!ctx) return;
-        const len = Math.floor(Math.max(0.01, dur) * ctx.sampleRate);
-        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-        const ch = buf.getChannelData(0);
-        for (let i=0;i<len;i++) ch[i] = Math.random()*2-1;
-        const src = ctx.createBufferSource();
-        const g = ctx.createGain();
-        g.gain.value = gain;
-        src.buffer = buf;
-        src.connect(g).connect(ctx.destination);
-        src.start();
-      };
-      (window as any).rf_audio_stopAll = () => {
-        try {
-          if (ctx.state !== "closed") ctx.close();
-        } catch {}
-        audioRef.current = null;
-      };
+      audioRef.current = initAudio();
     }
   }
 
@@ -199,13 +167,22 @@ export default function ArcadePage() {
     window.rf_load_cart!(buf);
 
     const cvs = canvasRef.current!;
-    const ctx = cvs.getContext("2d")!;
+    const ctx = cvs.getContext("2d", { alpha: false, desynchronized: true })!;
     const width = 480, height = 270;
-    cvs.width = width; cvs.height = height;
+    cvs.width = width;
+    cvs.height = height;
+    
     // Don't set explicit canvas style dimensions - let CSS control the display size
     // The canvas internal resolution is 480x270, but CSS will scale it to fit the container
-    // Pre-allocate ImageData once and reuse it
-    const img = ctx.createImageData(width, height);
+    
+    // Create offscreen canvas for double buffering (back buffer)
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = width;
+    offscreenCanvas.height = height;
+    const offscreenCtx = offscreenCanvas.getContext("2d", { alpha: false, willReadFrequently: false })!;
+    
+    // Pre-allocate ImageData once and reuse it (for offscreen canvas)
+    const img = offscreenCtx.createImageData(width, height);
     // Pre-allocate buffer for pixel transfer (reuse to avoid allocations)
     const pixelBuf = new Uint8Array(img.data.length);
     
@@ -217,7 +194,10 @@ export default function ArcadePage() {
       window.rf_get_pixels!(pixelBuf);
       // Copy directly to ImageData (more efficient than creating new arrays)
       img.data.set(pixelBuf);
-      ctx.putImageData(img, 0, 0);
+      // Draw to offscreen canvas (back buffer)
+      offscreenCtx.putImageData(img, 0, 0);
+      // Blit offscreen canvas to display canvas using drawImage (hardware accelerated, no flicker)
+      ctx.drawImage(offscreenCanvas, 0, 0);
       rafRef.current = requestAnimationFrame(loop);
     };
     setRunning(true);
@@ -225,13 +205,22 @@ export default function ArcadePage() {
   }
 
   function stop() {
+    console.log('[arcade] stop() called');
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
     setRunning(false);
-    if (audioRef.current && (window as any).rf_audio_stopAll) {
-      if (audioRef.current.state !== "closed") (window as any).rf_audio_stopAll();
+    // Always call stopAll to ensure all audio (sounds, music, thrust) stops
+    // Call it multiple times to ensure it takes effect
+    if (window.rf_audio_stopAll) {
+      window.rf_audio_stopAll();
+      // Call again after a brief delay to catch any sources that were just created
+      setTimeout(() => {
+        if (window.rf_audio_stopAll) {
+          window.rf_audio_stopAll();
+        }
+      }, 10);
     }
   }
 

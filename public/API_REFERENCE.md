@@ -46,18 +46,27 @@
 - `rf.camera([x, y])` - Set camera offset. All drawing operations are offset by (x, y). Call with no arguments to reset (0, 0)
 
 ### Sprite Drawing
-- `rf.spr(name, x, y, [flip_x, flip_y])` - Draw sprite by name at position (x, y). Optional horizontal/vertical flipping
+- `rf.spr(name, x, y, [frameOrAnimation, flip_x, flip_y])` - Draw sprite by name
+  - **Static sprites**: `rf.spr("player", x, y, [flip_x, flip_y])`
+  - **Frames sprites**: `rf.spr("player", x, y, "frameName", [flip_x, flip_y])` - Requires frame name
+  - **Animation sprites**: `rf.spr("player", x, y, [animationName, flip_x, flip_y])` - Uses active animation or specified animation
 - `rf.sspr(name, sx, sy, sw, sh, dx, dy, [dw, dh, flip_x, flip_y])` - Draw sprite region. Scales from source (sx, sy, sw, sh) to destination (dx, dy, dw, dh)
 
 ### Sprite Creation and Editing
 
-#### `rf.newSprite(name, width, height)`
-Creates a new empty sprite (all pixels transparent). Returns a sprite table.
+#### `rf.newSprite(name, width, height, [isUI])`
+Creates a new empty static sprite (all pixels transparent). Returns a sprite table.
 
 **Parameters:**
 - `name` (string): Unique name for the sprite
-- `width` (number): Sprite width in pixels (1-256)
-- `height` (number): Sprite height in pixels (1-256)
+- `width` (number): Sprite width in pixels (2-256)
+- `height` (number): Sprite height in pixels (2-256)
+- `isUI` (boolean, optional): Default `true` - If `true`, sprite is UI element
+
+**Size Restrictions:**
+- **Minimum**: 2×2 pixels (all sprites)
+- **Gameplay sprites** (`isUI=false`): 2×2 to 32×32 (any size)
+- **UI sprites** (`isUI=true`): 2×2 to 256×256 (both dimensions must be divisible by 2)
 
 **Returns:**
 - (table): Sprite data table with properties: `width`, `height`, `pixels`, `useCollision`, `isUI`, `lifetime`, `maxSpawn`, `mountPoints`
@@ -99,6 +108,122 @@ rf.setSpriteProperty("bullet", "lifetime", 1000)
 -- Now use it
 rf.spr("bullet", 100, 100)
 ```
+
+#### `rf.newSpriteFrames(name, width, height, [isUI])`
+Creates a new multi-frame sprite (no frames initially). Returns a sprite table.
+
+**Parameters:**
+- `name` (string): Unique name for the sprite
+- `width` (number): Frame width in pixels (2-256)
+- `height` (number): Frame height in pixels (2-256)
+- `isUI` (boolean, optional): Default `true`
+
+**Size Restrictions:** Same as `rf.newSprite()`
+
+**Returns:**
+- (table): Sprite data table with `type: "frames"`
+
+**Example:**
+```lua
+local player = rf.newSpriteFrames("player", 16, 16, false)
+-- Now add frames with rf.addSpriteFrame()
+```
+
+#### `rf.addSpriteFrame(spriteName, frameName, pixels)`
+Adds a frame to a frames or animation sprite.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite (must be frames or animation type)
+- `frameName` (string): Frame name (alphanumeric, underscore, hyphen; starts with letter/underscore)
+- `pixels` (table): 2D array of palette indices matching sprite width×height
+
+**Example:**
+```lua
+local pixels = {
+  {0, 0, 0, 0},
+  {0, 1, 1, 0},
+  {0, 1, 1, 0},
+  {0, 0, 0, 0}
+}
+rf.addSpriteFrame("player", "idle", pixels)
+```
+
+#### `rf.addSpriteAnimation(spriteName, animName, frameRefs, [speed], [loop], [loopType])`
+Adds an animation sequence to an animation sprite.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite (must be animation type)
+- `animName` (string): Animation name (alphanumeric, underscore, hyphen)
+- `frameRefs` (table): Array of frame names in sequence order
+- `speed` (number, optional): Speed multiplier (default: 1.0)
+- `loop` (boolean, optional): Whether to loop (default: true)
+- `loopType` (string, optional): `"forward"`, `"reverse"`, or `"pingpong"` (default: "forward")
+
+**Example:**
+```lua
+local frameRefs = {"walk_1", "walk_2", "walk_3"}
+rf.addSpriteAnimation("player", "walk", frameRefs, 1.0, true, "forward")
+```
+
+#### `rf.playAnimation(spriteName, animationName)`
+Starts playing an animation for all instances of the sprite.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite (must be animation type)
+- `animationName` (string): Animation name to play
+
+**Note:** Animations never auto-play - must explicitly call this function.
+
+**Example:**
+```lua
+rf.playAnimation("player", "walk")
+```
+
+#### `rf.pauseAnimation(spriteName)`
+Pauses the current animation (maintains current frame position).
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+
+#### `rf.resumeAnimation(spriteName)`
+Resumes a paused animation.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+
+#### `rf.stopAnimation(spriteName)`
+Stops the current animation (resets to frame 0).
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+
+#### `rf.setAnimationSpeed(spriteName, speed)`
+Sets the animation speed multiplier for all instances.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+- `speed` (number): Speed multiplier (1.0 = normal, 2.0 = double speed, 0.5 = half speed)
+
+**Example:**
+```lua
+rf.setAnimationSpeed("player", 2.0)  -- Double speed
+```
+
+#### `rf.setAnimationFrame(spriteName, frameIndex)`
+Sets the current frame index for all instances.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+- `frameIndex` (number): Frame index in the current animation (0-based)
+
+#### `rf.getAnimationFrame(spriteName)`
+Returns the current frame index from the first available instance.
+
+**Parameters:**
+- `spriteName` (string): Name of the sprite
+
+**Returns:**
+- (number): Current frame index, or `-1` if no active animation
 
 #### `rf.setSpriteProperty(sprite_name, property, value)`
 Sets a sprite property. Available properties: `useCollision`, `isUI`, `lifetime`, `maxSpawn`.
@@ -151,7 +276,7 @@ rf.setSpriteProperty("projectile", "maxSpawn", 10)  -- Max 10 at once
 ### Cart Persistence
 - `rf.cstore(dest_addr, src_addr, len)` - Copy `len` bytes from runtime memory (src_addr) to cart storage (dest_addr)
 - `rf.reload(dest_addr, src_addr, len)` - Copy `len` bytes from cart storage (src_addr) to runtime memory (dest_addr)
-- Cart storage size: 64KB (2x PICO-8's 32KB)
+- Cart storage size: 512KB (16x PICO-8's 32KB)
 - Used for saving/loading game state that persists across cart reloads
 - Addresses are validated and clamped to available bounds
 
@@ -263,7 +388,10 @@ Get sprite data by name (from `sprites.json` or created with `rf.newSprite`). Re
 {
   width = 16,
   height = 16,
-  pixels = {{row1}, {row2}, ...},  -- 2D array of color indices
+  type = "static",    -- "static", "frames", or "animation"
+  pixels = {{row1}, {row2}, ...},  -- 2D array (for static sprites)
+  frames = {...},     -- Array of frames (for frames/animation sprites)
+  animations = {...}, -- Array of animations (for animation sprites)
   useCollision = true,
   isUI = false,      -- If true, sprite is UI element (not affected by physics)
   lifetime = 0,       -- Lifetime in milliseconds (0 = no limit)
@@ -279,6 +407,36 @@ Get sprite data by name (from `sprites.json` or created with `rf.newSprite`). Re
 
 ### `rf.palette_set(name)`
 Set active palette by name (e.g., `"RetroForge 50"`, `"Grayscale 50"`).
+
+**State-Based Palette Switching:**
+Each state can load and use a different palette since states handle their own drawing. This allows you to use more than 50 colors across your entire game, but only 50 colors at a time.
+
+**Important Notes:**
+- Only **one palette is active at a time** (cannot have 2 palettes simultaneously)
+- Palette switching affects all drawing operations immediately (sprites, primitives, text)
+- Switch palettes in `_ENTER()` to set the palette when a state becomes active
+- Switch palettes in `_UPDATE()` to animate palette changes over time
+- Sprite indices (0-49) remain the same, but actual colors change based on active palette
+
+**Example:**
+```lua
+-- menu_state.lua
+function _ENTER()
+  rf.palette_set("Pastel 50")  -- Use pastel colors for menu
+end
+
+-- play_state.lua
+function _ENTER()
+  rf.palette_set("Neon 50")  -- Use neon colors for gameplay
+end
+
+-- Animated palette switching
+function _UPDATE(dt)
+  if time >= 2.0 then
+    rf.palette_set("Cyberpunk 50")  -- Switch palette every 2 seconds
+  end
+end
+```
 
 ## System
 
@@ -438,6 +596,29 @@ local PauseState = {
 
 ---
 
+## Engine Startup & State Flow
+
+### Automatic Startup Sequence
+
+The engine automatically handles the startup sequence:
+
+1. **Engine Splash Screen** (automatic, if not in debug mode):
+   - Displays for 2 seconds
+   - Can be skipped by pressing any button
+   - Automatically transitions to the next state
+
+2. **Second State** (automatic):
+   - If `splash_state.lua` exists → transitions to `"splash"` state (your custom splash)
+   - Else → transitions to `initialState` (defaults to `"menu"`)
+
+3. **NO manual state transitions needed** - the engine handles everything automatically
+
+**Important Notes:**
+- If you only have one state, name it `menu_state.lua` so it registers as `"menu"` and matches the engine's default
+- Import states directly in `main.lua` (not in `_INIT()` function)
+- Do NOT call `game.changeState()` manually at startup - the engine handles transitions automatically
+- The engine splash screen is skipped in debug mode (when running from a folder)
+
 ## Module-Based State System
 
 The Module-Based State System provides a convention-based approach for defining game states. Instead of manually creating state tables and registering them, you can create separate `.lua` files that are automatically loaded and registered as states.
@@ -475,22 +656,21 @@ Every state module must implement these five functions:
 **Example - main.lua:**
 ```lua
 -- main.lua
-context = {
-  player = {x = 100, y = 100, lives = 3},
-  score = 0,
-  level = 1
-}
+-- Import all state modules (do this at module level, not in _INIT())
+local menu_state = rf.import("menu_state.lua")      -- Registers "menu"
+local play_state = rf.import("play_state.lua")      -- Registers "play"
+local pause_state = rf.import("pause_state.lua")    -- Registers "pause"
 
-function _init()
-  -- Import all state modules
-  rf.import("menu_state.lua")      -- Registers "menu"
-  rf.import("playing_state.lua")   -- Registers "playing"
-  rf.import("pause_state.lua")     -- Registers "pause"
-  rf.import("game_over_state.lua") -- Registers "game_over"
-  
-  -- Start at menu
-  game.changeState("menu")
+-- Optional: Set context for game-wide data
+if game then
+  game.setContext("demo_name", "My Game")
+  game.setContext("features", {"Feature 1", "Feature 2"})
 end
+
+-- The engine will:
+-- 1. Show engine splash (automatic, 2 seconds or any input to skip)
+-- 2. Transition to menu (automatic, since "menu" is the default initialState)
+-- 3. Your states handle transitions from there
 ```
 
 **Example - menu_state.lua:**
@@ -502,8 +682,12 @@ local selected = 1
 local menu_items = {"START GAME", "OPTIONS", "QUIT"}
 
 function _INIT()
-  -- One-time setup (called once)
-  rf.printh("Menu initialized")
+  -- One-time setup (called once when state is first created)
+  -- Set up credits here when game object is guaranteed to be available
+  if game then
+    game.addCredit("Game", "My Game", "A Retro Game")
+    game.addCredit("Developer", "Your Name", "Programmer")
+  end
 end
 
 function _ENTER()
@@ -513,18 +697,19 @@ function _ENTER()
 end
 
 function _HANDLE_INPUT()
-  -- Navigate menu
-  if rf.btnp(2) then  -- Up
+  -- Handle button presses (instant actions)
+  -- Button 0 = SELECT, Button 1 = START, Button 2 = UP, etc.
+  if rf.btnp(2) then  -- UP button
     selected = selected - 1
     if selected < 1 then selected = #menu_items end
     rf.sfx("cursor")
-  elseif rf.btnp(3) then  -- Down
+  elseif rf.btnp(3) then  -- DOWN button
     selected = selected + 1
     if selected > #menu_items then selected = 1 end
     rf.sfx("cursor")
-  elseif rf.btnp(4) then  -- A button
+  elseif rf.btnp(0) or rf.btnp(6) then  -- SELECT or A button
     if selected == 1 then
-      game.changeState("playing")
+      game.changeState("play")
     elseif selected == 3 then
       game.exit()
     end
@@ -532,7 +717,9 @@ function _HANDLE_INPUT()
 end
 
 function _UPDATE(dt)
-  -- Update animations, timers, etc.
+  -- Handle movement and continuous actions using dt (delta time in seconds)
+  -- dt is frame-rate independent, ensuring consistent speed across platforms
+  -- Example: if dt = 0.016, that's ~60 FPS
 end
 
 function _DRAW()
@@ -552,8 +739,7 @@ function _EXIT()
 end
 
 function _DONE()
-  -- Final cleanup (called once on destroy)
-  rf.printh("Menu destroyed")
+  -- Final cleanup (called once when state is destroyed)
 end
 ```
 

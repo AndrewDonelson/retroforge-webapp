@@ -9,8 +9,8 @@ A comprehensive feature-by-feature comparison between PICO-8 (the most popular f
 | Feature Category | PICO-8 | RetroForge | Notes |
 |-----------------|--------|------------|-------|
 | **Display** | 128×128 | 480×270 | RetroForge has higher resolution |
-| **Palette** | 16 colors | 50 colors | RetroForge has larger palette |
-| **Cart Size Limit** | 32 KB | 64 KB | RetroForge 2x PICO-8 capacity |
+| **Palette** | 16 colors | 50 colors (state-based switching) | RetroForge has larger palette + state-based switching |
+| **Cart Size Limit** | 32 KB | 512 KB | RetroForge 16x PICO-8 capacity |
 | **Built-in Editor** | ✅ Yes (all-in-one) | ❌ No (separate webapp) | PICO-8 has integrated IDE |
 | **Sprite System** | ✅ Sprite sheet (8×8) | ✅ JSON-based sprites | Different approaches |
 | **Sprite Pooling** | ❌ No | ✅ Automatic (transparent) | RetroForge pools high-spawn sprites automatically |
@@ -184,17 +184,36 @@ btnp([i], [p])                  -- Button just pressed
 rf.btn(button)                  -- Button held
 rf.btnp(button)                 -- Button just pressed
 rf.btnr(button)                 -- Button just released (RetroForge only)
+rf.shift()                      -- Alias for rf.btn(10) - TURBO button
 ```
 
-**Button Indexes:**
-- 0-15: Standard buttons
-- 16+: Extended buttons
+**Button Indexes (Universal 11-Button System):**
+- `0` - **SELECT** - Menu navigation, secondary action
+- `1` - **START** - Pause/menu, primary action
+- `2` - **UP** - Directional input
+- `3` - **DOWN** - Directional input
+- `4` - **LEFT** - Directional input
+- `5` - **RIGHT** - Directional input
+- `6` - **A** - Primary action button
+- `7` - **B** - Secondary action button
+- `8` - **X** - Tertiary action button
+- `9` - **Y** - Quaternary action button
+- `10` - **TURBO** - Modifier button (e.g., boost, run)
+
+**Mobile/Tablet Controller:**
+- On mobile and tablet devices in portrait mode, an on-screen virtual controller is automatically displayed
+- Optimized layouts: Portrait (large D-pad top-left, action buttons bottom-right) and Landscape (traditional 3-column layout)
+- Controller maps directly to the 11-button system
+- Dynamic sizing based on available screen space
 
 ### Differences
 
 ✅ **RetroForge has `btnr()`** - Button release detection (not in PICO-8)  
-✅ **RetroForge supports more buttons** - 0-15+ vs PICO-8's 0-7  
-🔄 **Multi-player Input** - Coming soon via WebRTC-based networking  
+✅ **RetroForge Universal 11-Button System** - Consistent across desktop, mobile, and tablet platforms  
+✅ **Mobile Controller Support** - Automatic on-screen controller with optimized layouts for portrait/landscape  
+✅ **Frame-Rate Independence** - Uses actual delta time, ensuring consistent speed across WASM and desktop builds  
+✅ **Double Buffering** - Prevents flicker/blur with smooth rendering on all platforms  
+✅ **Multi-player Input** - WebRTC-based networking with up to 6 players  
 
 ---
 
@@ -324,7 +343,7 @@ reload(dest_addr, src_addr, len) -- Copy from cart storage to runtime memory
 
 ```lua
 -- Cart Data
--- 64 KB cart size limit (2x PICO-8's 32 KB)
+-- 512 KB cart size limit (16x PICO-8's 32 KB)
 -- JSON-based storage (sprites.json, sfx.json, music.json)
 -- Lua code in main.lua
 
@@ -343,7 +362,7 @@ rf.reload(dest_addr, src_addr, len) -- Copy from cart storage to runtime memory
 
 **Features:**
 - 2MB memory (same as PICO-8)
-- 64KB cart storage (2x PICO-8's 32KB)
+- 512KB cart storage (16x PICO-8's 32KB)
 - Full poke/peek API support ✅
 - Cart persistence API ✅
 
@@ -680,8 +699,13 @@ rf.quit()                       -- Request quit
 ✅ **Sprite Collision Metadata:** `useCollision` flag  
 ✅ **Automatic Sprite Pooling:** High-spawn sprites (maxSpawn>10, isUI=false) are automatically pooled for performance - transparent to developers  
 ✅ **50-Color Palette:** More colors than PICO-8's 16  
+✅ **State-Based Palette Switching:** Each state can use a different palette, allowing more than 50 colors across the game (but only 50 at a time)  
 ✅ **Higher Resolution:** 480×270 vs 128×128  
 ✅ **Button Release:** `btnr()` for edge-triggered release  
+✅ **Universal 11-Button Input System:** Consistent across desktop, mobile, and tablet platforms  
+✅ **Mobile Controller:** Automatic on-screen controller with optimized portrait/landscape layouts  
+✅ **Frame-Rate Independence:** Uses actual delta time, ensuring consistent speed across WASM and desktop builds  
+✅ **Double Buffering:** Prevents flicker/blur with smooth rendering on all platforms  
 ✅ **8 Audio Channels:** vs PICO-8's 4  
 ✅ **Android Support:** Native mobile support  
 ✅ **JSON-Based Assets:** Flexible sprite/SFX/music storage  
@@ -689,6 +713,7 @@ rf.quit()                       -- Request quit
 ✅ **Feature Parity:** All core PICO-8 graphics/tilemap/camera/memory APIs implemented  
 ✅ **State Machine:** Flexible state management system with lifecycle callbacks, state stacking, and shared context  
 ✅ **Module-Based States:** Convention-based state modules with automatic registration via `rf.import()`  
+✅ **Automatic Engine Splash:** 2-second splash screen with automatic state transitions  
 ✅ **Node System:** Godot-style scene graph (planned)  
 ✅ **Multiplayer:** WebRTC-based multiplayer support (up to 6 players) with automatic state sync  
 
@@ -710,7 +735,7 @@ rf.quit()                       -- Request quit
 
 **Memory & Storage:**
 - **✅ Memory Access** - `rf.poke()`, `rf.peek()` functions (2MB memory)
-- **✅ Cart Persistence** - `rf.cstore()` / `rf.reload()` for saving/loading cart data (64KB)
+- **✅ Cart Persistence** - `rf.cstore()` / `rf.reload()` for saving/loading cart data (512KB)
 
 **Development Tools:**
 - **✅ Hot Reload** - Live code editing (development mode only - when running from folder)
@@ -788,7 +813,7 @@ rf.quit()                       -- Request quit
 12. **✅ Cart Persistence** - Implemented!
     - `rf.cstore(dest_addr, src_addr, len)` - Copy from runtime memory to cart storage
     - `rf.reload(dest_addr, src_addr, len)` - Copy from cart storage to runtime memory
-    - 64KB cart storage (2x PICO-8's 32KB)
+    - 512KB cart storage (16x PICO-8's 32KB)
     - Full address validation and bounds clamping
 
 13. **✅ Text Cursor/Color State** - Implemented!
@@ -868,11 +893,11 @@ rf.quit()                       -- Request quit
 | **Module-Based States** | ❌ No | ✅ Yes | ✅ RetroForge advantage |
 | **Platforms** | Desktop + Web | Desktop + Web + Android | ✅ More platforms |
 | **Resolution** | 128×128 | 480×270 | ✅ Higher resolution |
-| **Palette** | 16 colors | 50 colors | ✅ More colors |
+| **Palette** | 16 colors | 50 colors (state-based switching) | ✅ More colors + state switching |
 
 **Overall Assessment:** RetroForge now has feature parity with PICO-8's core graphics, tilemap, camera, memory APIs, and multiplayer support. Hot reload and debug tools are available in development mode (when running from folders). Command mode features (save, load, export) are available in the webapp UI. Multiplayer support is implemented via WebRTC with automatic state synchronization. RetroForge offers additional features like state machine management, module-based state system (`rf.import()`), physics, higher resolution, larger palette, Android support, and modern WebRTC-based multiplayer (up to 6 players). The main remaining advantage for PICO-8 is the all-in-one IDE experience, though RetroForge's webapp provides equivalent functionality in a browser-based interface.
 
 ---
 
-*Last Updated: RetroForge Engine now includes tilemap (256×256), camera, clipping, color remapping, pixel reading, sprite drawing, ellipse drawing, memory API, Box2D physics integration, hot reload (dev mode), debug tools (dev mode), cart persistence (cstore/reload, 64KB), text cursor/color state, command mode features (save/load/export via webapp), WebRTC-based multiplayer support (up to 6 players) with automatic state synchronization, a flexible state machine system with lifecycle callbacks, state stacking, and shared context, a module-based state system with `rf.import()` for convention-based state modules, and automatic sprite pooling for high-spawn sprites (transparent performance optimization). Full feature parity achieved with PICO-8's core APIs, including multiplayer, plus additional features like state management, module-based organization, physics, and automatic performance optimizations.*
+*Last Updated: RetroForge Engine now includes tilemap (256×256), camera, clipping, color remapping, pixel reading, sprite drawing, ellipse drawing, memory API, Box2D physics integration, hot reload (dev mode), debug tools (dev mode), cart persistence (cstore/reload, 512KB), text cursor/color state, command mode features (save/load/export via webapp), WebRTC-based multiplayer support (up to 6 players) with automatic state synchronization, a flexible state machine system with lifecycle callbacks, state stacking, and shared context, a module-based state system with `rf.import()` for convention-based state modules, and automatic sprite pooling for high-spawn sprites (transparent performance optimization). Full feature parity achieved with PICO-8's core APIs, including multiplayer, plus additional features like state management, module-based organization, physics, and automatic performance optimizations.*
 

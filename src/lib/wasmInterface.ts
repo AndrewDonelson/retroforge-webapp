@@ -322,6 +322,8 @@ export function initAudio(): AudioContext | null {
   };
 
   window.rf_audio_stopAll = () => {
+    console.log('[audio] stopAll called, ctx state:', ctx.state);
+    
     // Signal music to stop (must be done first to prevent new notes)
     musicShouldStop = true;
     
@@ -331,29 +333,85 @@ export function initAudio(): AudioContext | null {
       musicTimeout = null;
     }
     
-    // Stop all active audio sources (sine waves, noise, music notes)
+    // Stop all active audio sources (sine waves, noise, music notes) immediately
+    const sourcesToStop: AudioScheduledSourceNode[] = [];
+    const gainNodesToDisconnect: GainNode[] = [];
+    
     activeAudioSources.forEach((source) => {
-      try {
-        if (source instanceof AudioScheduledSourceNode) {
-          source.stop();
-        } else if (source instanceof GainNode) {
-          // Gain nodes can't be stopped directly, but we can disconnect them
-          source.disconnect();
-        }
-      } catch (e) {
-        // Ignore errors (source may already be stopped)
+      if (source instanceof AudioScheduledSourceNode) {
+        sourcesToStop.push(source);
+      } else if (source instanceof GainNode) {
+        gainNodesToDisconnect.push(source);
       }
     });
-    activeAudioSources.clear();
     
-    // Stop all thrust oscillators
+    // Stop all sources immediately (use currentTime to stop right now)
+    sourcesToStop.forEach((source) => {
+      try {
+        // Check if source is already stopped
+        if (source.playbackState !== undefined && (source as any).playbackState === 'finished') {
+          return;
+        }
+        // Stop immediately at current time
+        source.stop(ctx.currentTime);
+      } catch (e) {
+        // If stop() throws, try stop() without arguments
+        try {
+          source.stop();
+        } catch (e2) {
+          // If that also fails, try to disconnect
+          try {
+            source.disconnect();
+          } catch (e3) {
+            // Ignore - source may already be stopped/disconnected
+          }
+        }
+      }
+    });
+    
+    // Disconnect all gain nodes from destination
+    gainNodesToDisconnect.forEach((gain) => {
+      try {
+        gain.disconnect();
+      } catch (e) {
+        // Ignore - may already be disconnected
+      }
+    });
+    
+    // Stop all thrust oscillators immediately
     Array.from(thrustOscs.values()).forEach(osc => {
       try {
-        osc.stop();
-        activeAudioSources.delete(osc);
-      } catch {}
+        osc.stop(ctx.currentTime);
+      } catch (e) {
+        try {
+          osc.stop();
+        } catch (e2) {
+          try {
+            osc.disconnect();
+          } catch {}
+        }
+      }
     });
+    
+    // Clear all tracking
+    activeAudioSources.clear();
     thrustOscs.clear();
+    
+    // As a last resort, suspend the audio context temporarily to stop all audio
+    // Then resume it after a brief moment (so it can be used again)
+    if (ctx.state === 'running') {
+      ctx.suspend().then(() => {
+        console.log('[audio] Audio context suspended');
+        // Resume after a brief moment to allow future audio
+        setTimeout(() => {
+          ctx.resume().then(() => {
+            console.log('[audio] Audio context resumed');
+          }).catch(() => {});
+        }, 50);
+      }).catch(() => {});
+    }
+    
+    console.log('[audio] stopAll completed, stopped', sourcesToStop.length, 'sources, disconnected', gainNodesToDisconnect.length, 'gain nodes');
   };
 
   window.rf_screenshot_callback = (pixels: Uint8Array, width: number, height: number) => {

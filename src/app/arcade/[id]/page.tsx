@@ -484,12 +484,24 @@ export default function ArcadeDetailPage() {
   }
 
   function stop() {
-    if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    console.log('[arcade] stop() called');
+    if (rafRef.current != null) { 
+      cancelAnimationFrame(rafRef.current); 
+      rafRef.current = null; 
+    }
     setRunning(false);
     runningRef.current = false; // Also update ref
+    
     // Always call stopAll to ensure all audio (sounds, music, thrust) stops
+    // Call it multiple times to ensure it takes effect
     if (window.rf_audio_stopAll) {
       window.rf_audio_stopAll();
+      // Call again after a brief delay to catch any sources that were just created
+      setTimeout(() => {
+        if (window.rf_audio_stopAll) {
+          window.rf_audio_stopAll();
+        }
+      }, 10);
     }
   }
 

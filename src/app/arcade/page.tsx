@@ -6,7 +6,7 @@ import { api } from '@/convex/_generated/api';
 import { Id } from '@/convex/_generated/dataModel';
 import Controller from '@/components/Controller/Controller';
 import { useController, isMobilePortrait } from '@/lib/useController';
-import { setupInput } from '@/lib/wasmInterface';
+import { setupInput, initAudio } from '@/lib/wasmInterface';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,42 +112,10 @@ export default function ArcadePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // Install simple WebAudio shims used by WASM audio bridge
+  // Install WebAudio shims using centralized implementation from wasmInterface
   function ensureAudio() {
     if (!audioRef.current) {
-      audioRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const ctx = audioRef.current;
-      (window as any).rf_audio_playSine = (freq: number, dur: number, gain: number) => {
-        if (!ctx) return;
-        const osc = ctx.createOscillator();
-        const g = ctx.createGain();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        g.gain.value = gain;
-        osc.connect(g).connect(ctx.destination);
-        const now = ctx.currentTime;
-        osc.start(now);
-        osc.stop(now + Math.max(0.01, dur));
-      };
-      (window as any).rf_audio_playNoise = (dur: number, gain: number) => {
-        if (!ctx) return;
-        const len = Math.floor(Math.max(0.01, dur) * ctx.sampleRate);
-        const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-        const ch = buf.getChannelData(0);
-        for (let i=0;i<len;i++) ch[i] = Math.random()*2-1;
-        const src = ctx.createBufferSource();
-        const g = ctx.createGain();
-        g.gain.value = gain;
-        src.buffer = buf;
-        src.connect(g).connect(ctx.destination);
-        src.start();
-      };
-      (window as any).rf_audio_stopAll = () => {
-        try {
-          if (ctx.state !== "closed") ctx.close();
-        } catch {}
-        audioRef.current = null;
-      };
+      audioRef.current = initAudio();
     }
   }
 
@@ -242,8 +210,9 @@ export default function ArcadePage() {
       rafRef.current = null;
     }
     setRunning(false);
-    if (audioRef.current && (window as any).rf_audio_stopAll) {
-      if (audioRef.current.state !== "closed") (window as any).rf_audio_stopAll();
+    // Always call stopAll to ensure all audio (sounds, music, thrust) stops
+    if (window.rf_audio_stopAll) {
+      window.rf_audio_stopAll();
     }
   }
 

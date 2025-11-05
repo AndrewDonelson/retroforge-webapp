@@ -487,8 +487,9 @@ export default function ArcadeDetailPage() {
     if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     setRunning(false);
     runningRef.current = false; // Also update ref
-    if (audioRef.current && window.rf_audio_stopAll) {
-      if (audioRef.current.state !== "closed") window.rf_audio_stopAll();
+    // Always call stopAll to ensure all audio (sounds, music, thrust) stops
+    if (window.rf_audio_stopAll) {
+      window.rf_audio_stopAll();
     }
   }
 

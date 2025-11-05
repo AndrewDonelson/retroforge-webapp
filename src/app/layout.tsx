@@ -6,6 +6,8 @@ import SiteHeader from '@/components/layout/SiteHeader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import { ConvexProvider } from '@/providers/ConvexProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { PWAInstallPrompt } from '@/components/PWAInstallPrompt'
+import Script from 'next/script'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -21,6 +23,22 @@ export const metadata: Metadata = {
   authors: [{ name: 'Andrew Donelson', url: 'https://andrewdonelson.com' }],
   creator: 'Andrew Donelson',
   publisher: 'RetroForge',
+  manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/RetroForge-Icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'RetroForge',
+  },
   robots: {
     index: true,
     follow: true,
@@ -52,6 +70,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  themeColor: '#8b5cf6',
 }
 
 export default function RootLayout({
@@ -61,6 +80,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="h-full">
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
       <body className={`${inter.className} h-full bg-gray-900 text-white`}>
         <ConvexProvider>
           <AuthProvider>
@@ -79,8 +102,28 @@ export default function RootLayout({
               {/* Shared site footer */}
               <SiteFooter />
             </div>
+            
+            {/* PWA Install Prompt */}
+            <PWAInstallPrompt />
           </AuthProvider>
         </ConvexProvider>
+        
+        {/* Service Worker Registration */}
+        <Script id="register-sw" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                  .then((registration) => {
+                    console.log('[SW] Registered:', registration.scope);
+                  })
+                  .catch((error) => {
+                    console.error('[SW] Registration failed:', error);
+                  });
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   )

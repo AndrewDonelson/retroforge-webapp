@@ -31,8 +31,8 @@ export function AnimationPreview({
 }: AnimationPreviewProps) {
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
-  const animationRef = useRef<number>()
-  const lastTimeRef = useRef<number>()
+  const animationRef = useRef<number | undefined>(undefined)
+  const lastTimeRef = useRef<number | undefined>(undefined)
 
   // Calculate current frame based on animation state
   useEffect(() => {

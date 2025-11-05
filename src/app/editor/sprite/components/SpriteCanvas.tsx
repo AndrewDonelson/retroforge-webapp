@@ -13,7 +13,7 @@ interface SpriteCanvasProps {
   currentPalette: Palette
   selection: Selection | null
   mountPoints: MountPoint[]
-  canvasRef: React.RefObject<HTMLDivElement>
+  canvasRef: React.RefObject<HTMLDivElement | null>
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void
   onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
   onMouseUp: (e: React.MouseEvent<HTMLDivElement>) => void

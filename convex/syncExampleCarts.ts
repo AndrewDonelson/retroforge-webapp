@@ -3,8 +3,17 @@ import { v } from 'convex/values'
 import { Id } from './_generated/dataModel'
 import { api } from './_generated/api'
 
-// List of example carts to sync
+// List of example carts with metadata (fallback if manifest doesn't have it)
 const EXAMPLE_CARTS = [
+  {
+    id: 'animated-character',
+    title: 'Animated Character Demo',
+    author: 'RetroForge',
+    description: 'A cute demonstration of multi-frame sprites and animations.',
+    genre: 'Demo',
+    imageUrl: '/assets/placeholders/cart01.png',
+    cartFileUrl: '/carts/animated-character.rf',
+  },
   {
     id: 'helloworld',
     title: 'Hello World',
@@ -58,6 +67,15 @@ const EXAMPLE_CARTS = [
     genre: 'Simulation',
     imageUrl: '/assets/placeholders/cart05.png',
     cartFileUrl: '/carts/galaxy.rf',
+  },
+  {
+    id: 'pole-position',
+    title: 'Pole Position',
+    author: 'RetroForge',
+    description: 'Classic racing game inspired by Pole Position.',
+    genre: 'Racing',
+    imageUrl: '/assets/placeholders/cart02.png',
+    cartFileUrl: '/carts/pole-position.rf',
   },
 ]
 
@@ -312,10 +330,7 @@ export const syncExampleCarts = action({
       const cartTitle = cartDef?.title || cartData.id
       
       try {
-        if (!cartDef) {
-          throw new Error(`Unknown cart ID: ${cartData.id}`)
-        }
-
+        // Note: cartDef is optional - we'll extract metadata from manifest if not found
         const base64 = cartData.base64
 
         // Unpack cart
@@ -325,13 +340,13 @@ export const syncExampleCarts = action({
         const actualManifest = manifest.fullManifest || manifest
         const isMultiplayer = manifest.hasMultiplayer === true || manifest.enabled === true
 
-        // Merge manifest with cart definition
+        // Merge manifest with cart definition (prefer manifest data, fallback to cartDef)
         const cartRecord = {
-          title: actualManifest.title || cartDef.title,
-          author: actualManifest.author || cartDef.author,
-          description: actualManifest.description || cartDef.description,
-          genre: cartDef.genre, // Use provided genre
-          imageUrl: cartDef.imageUrl,
+          title: actualManifest.title || cartDef?.title || cartData.id,
+          author: actualManifest.author || cartDef?.author || 'RetroForge',
+          description: actualManifest.description || cartDef?.description || 'Example cart',
+          genre: cartDef?.genre || actualManifest.genre || 'Demo',
+          imageUrl: cartDef?.imageUrl || '/assets/placeholders/cart01.png',
           plays: 0,
           createdAt: now,
           updatedAt: now,

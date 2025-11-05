@@ -113,6 +113,12 @@ export function initAudio(): AudioContext | null {
   const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
   let thrustOsc: OscillatorNode | null = null;
   let musicTimeout: number | null = null;
+  
+  // Module-level flag to stop music (shared across all music instances)
+  let musicShouldStop = false;
+
+  // Track all active audio sources for proper cleanup
+  const activeAudioSources = new Set<AudioScheduledSourceNode | GainNode>();
 
   window.rf_audio_playSine = (freq: number, dur: number, gain: number) => {
     if (!ctx) return;
@@ -123,6 +129,17 @@ export function initAudio(): AudioContext | null {
     g.gain.value = gain;
     osc.connect(g).connect(ctx.destination);
     const now = ctx.currentTime;
+    
+    // Track this source
+    activeAudioSources.add(osc);
+    activeAudioSources.add(g);
+    
+    // Remove from tracking when it naturally ends
+    osc.onended = () => {
+      activeAudioSources.delete(osc);
+      activeAudioSources.delete(g);
+    };
+    
     osc.start(now);
     osc.stop(now + Math.max(0.01, dur));
   };
@@ -138,6 +155,17 @@ export function initAudio(): AudioContext | null {
     g.gain.value = gain;
     src.buffer = buf;
     src.connect(g).connect(ctx.destination);
+    
+    // Track this source
+    activeAudioSources.add(src);
+    activeAudioSources.add(g);
+    
+    // Remove from tracking when it naturally ends
+    src.onended = () => {
+      activeAudioSources.delete(src);
+      activeAudioSources.delete(g);
+    };
+    
     src.start();
   };
 
@@ -157,7 +185,20 @@ export function initAudio(): AudioContext | null {
       // Stop any existing thrust with this key
       if (thrustOscs.has(key)) {
         try {
-          thrustOscs.get(key)?.stop();
+          const existingOsc = thrustOscs.get(key);
+          if (existingOsc) {
+            existingOsc.stop();
+            activeAudioSources.delete(existingOsc);
+            // Find and remove associated gain node
+            const gainNodes = Array.from(activeAudioSources).filter(
+              (node) => node instanceof GainNode
+            ) as GainNode[];
+            gainNodes.forEach((g) => {
+              // Check if this gain is connected to the stopped oscillator
+              // (simplified: remove all gain nodes when stopping thrust)
+              activeAudioSources.delete(g);
+            });
+          }
         } catch {}
         thrustOscs.delete(key);
       }
@@ -169,13 +210,27 @@ export function initAudio(): AudioContext | null {
       osc.frequency.value = freq;
       g.gain.value = gain;
       osc.connect(g).connect(ctx.destination);
+      
+      // Track this source
+      activeAudioSources.add(osc);
+      activeAudioSources.add(g);
+      
       osc.start(ctx.currentTime);
       thrustOscs.set(key, osc);
     } else {
       // Stop this specific thrust
       if (thrustOscs.has(key)) {
         try {
-          thrustOscs.get(key)?.stop();
+          const osc = thrustOscs.get(key);
+          if (osc) {
+            osc.stop();
+            activeAudioSources.delete(osc);
+            // Remove associated gain node
+            const gainNodes = Array.from(activeAudioSources).filter(
+              (node) => node instanceof GainNode
+            ) as GainNode[];
+            gainNodes.forEach((g) => activeAudioSources.delete(g));
+          }
         } catch {}
         thrustOscs.delete(key);
       }
@@ -189,6 +244,10 @@ export function initAudio(): AudioContext | null {
       clearTimeout(musicTimeout);
       musicTimeout = null;
     }
+    
+    // Reset stop flag when starting new music
+    musicShouldStop = false;
+    
     const noteMap: Record<string, number> = {
       "C": 261.63, "C#": 277.18, "D": 293.66, "D#": 311.13,
       "E": 329.63, "F": 349.23, "F#": 369.99,
@@ -198,6 +257,11 @@ export function initAudio(): AudioContext | null {
     const beatDuration = 60 / bpm;
 
     const playNext = () => {
+      // Check if music was stopped
+      if (musicShouldStop) {
+        return;
+      }
+      
       if (noteIndex >= tokens.length) return;
       const token = tokens[noteIndex];
       noteIndex++;
@@ -205,7 +269,9 @@ export function initAudio(): AudioContext | null {
       if (token.startsWith("R")) {
         // Rest - just wait
         const restBeats = parseInt(token.substring(1)) || 1;
-        musicTimeout = window.setTimeout(playNext, restBeats * beatDuration * 1000);
+        musicTimeout = window.setTimeout(() => {
+          if (!musicShouldStop) playNext();
+        }, restBeats * beatDuration * 1000);
       } else {
         // Parse note: format like "4C1" = octave 4, note C, duration 1 beat
         let octave = 4;
@@ -231,11 +297,24 @@ export function initAudio(): AudioContext | null {
         osc.frequency.value = freq;
         g.gain.value = gain;
         osc.connect(g).connect(ctx.destination);
+        
+        // Track this source
+        activeAudioSources.add(osc);
+        activeAudioSources.add(g);
+        
+        // Remove from tracking when it naturally ends
+        osc.onended = () => {
+          activeAudioSources.delete(osc);
+          activeAudioSources.delete(g);
+        };
+        
         const now = ctx.currentTime;
         osc.start(now);
         osc.stop(now + dur * beatDuration);
 
-        musicTimeout = window.setTimeout(playNext, dur * beatDuration * 1000);
+        musicTimeout = window.setTimeout(() => {
+          if (!musicShouldStop) playNext();
+        }, dur * beatDuration * 1000);
       }
     };
 
@@ -243,18 +322,38 @@ export function initAudio(): AudioContext | null {
   };
 
   window.rf_audio_stopAll = () => {
-    // Stop all thrust oscillators
-    Array.from(thrustOscs.values()).forEach(osc => {
-      try {
-        osc.stop();
-      } catch {}
-    });
-    thrustOscs.clear();
+    // Signal music to stop (must be done first to prevent new notes)
+    musicShouldStop = true;
     
+    // Stop music timeout
     if (musicTimeout) {
       clearTimeout(musicTimeout);
       musicTimeout = null;
     }
+    
+    // Stop all active audio sources (sine waves, noise, music notes)
+    activeAudioSources.forEach((source) => {
+      try {
+        if (source instanceof AudioScheduledSourceNode) {
+          source.stop();
+        } else if (source instanceof GainNode) {
+          // Gain nodes can't be stopped directly, but we can disconnect them
+          source.disconnect();
+        }
+      } catch (e) {
+        // Ignore errors (source may already be stopped)
+      }
+    });
+    activeAudioSources.clear();
+    
+    // Stop all thrust oscillators
+    Array.from(thrustOscs.values()).forEach(osc => {
+      try {
+        osc.stop();
+        activeAudioSources.delete(osc);
+      } catch {}
+    });
+    thrustOscs.clear();
   };
 
   window.rf_screenshot_callback = (pixels: Uint8Array, width: number, height: number) => {

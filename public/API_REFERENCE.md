@@ -276,7 +276,7 @@ rf.setSpriteProperty("projectile", "maxSpawn", 10)  -- Max 10 at once
 ### Cart Persistence
 - `rf.cstore(dest_addr, src_addr, len)` - Copy `len` bytes from runtime memory (src_addr) to cart storage (dest_addr)
 - `rf.reload(dest_addr, src_addr, len)` - Copy `len` bytes from cart storage (src_addr) to runtime memory (dest_addr)
-- Cart storage size: 64KB (2x PICO-8's 32KB)
+- Cart storage size: 512KB (16x PICO-8's 32KB)
 - Used for saving/loading game state that persists across cart reloads
 - Addresses are validated and clamped to available bounds
 
@@ -407,6 +407,36 @@ Get sprite data by name (from `sprites.json` or created with `rf.newSprite`). Re
 
 ### `rf.palette_set(name)`
 Set active palette by name (e.g., `"RetroForge 50"`, `"Grayscale 50"`).
+
+**State-Based Palette Switching:**
+Each state can load and use a different palette since states handle their own drawing. This allows you to use more than 50 colors across your entire game, but only 50 colors at a time.
+
+**Important Notes:**
+- Only **one palette is active at a time** (cannot have 2 palettes simultaneously)
+- Palette switching affects all drawing operations immediately (sprites, primitives, text)
+- Switch palettes in `_ENTER()` to set the palette when a state becomes active
+- Switch palettes in `_UPDATE()` to animate palette changes over time
+- Sprite indices (0-49) remain the same, but actual colors change based on active palette
+
+**Example:**
+```lua
+-- menu_state.lua
+function _ENTER()
+  rf.palette_set("Pastel 50")  -- Use pastel colors for menu
+end
+
+-- play_state.lua
+function _ENTER()
+  rf.palette_set("Neon 50")  -- Use neon colors for gameplay
+end
+
+-- Animated palette switching
+function _UPDATE(dt)
+  if time >= 2.0 then
+    rf.palette_set("Cyberpunk 50")  -- Switch palette every 2 seconds
+  end
+end
+```
 
 ## System
 
@@ -566,6 +596,29 @@ local PauseState = {
 
 ---
 
+## Engine Startup & State Flow
+
+### Automatic Startup Sequence
+
+The engine automatically handles the startup sequence:
+
+1. **Engine Splash Screen** (automatic, if not in debug mode):
+   - Displays for 2 seconds
+   - Can be skipped by pressing any button
+   - Automatically transitions to the next state
+
+2. **Second State** (automatic):
+   - If `splash_state.lua` exists → transitions to `"splash"` state (your custom splash)
+   - Else → transitions to `initialState` (defaults to `"menu"`)
+
+3. **NO manual state transitions needed** - the engine handles everything automatically
+
+**Important Notes:**
+- If you only have one state, name it `menu_state.lua` so it registers as `"menu"` and matches the engine's default
+- Import states directly in `main.lua` (not in `_INIT()` function)
+- Do NOT call `game.changeState()` manually at startup - the engine handles transitions automatically
+- The engine splash screen is skipped in debug mode (when running from a folder)
+
 ## Module-Based State System
 
 The Module-Based State System provides a convention-based approach for defining game states. Instead of manually creating state tables and registering them, you can create separate `.lua` files that are automatically loaded and registered as states.
@@ -603,22 +656,21 @@ Every state module must implement these five functions:
 **Example - main.lua:**
 ```lua
 -- main.lua
-context = {
-  player = {x = 100, y = 100, lives = 3},
-  score = 0,
-  level = 1
-}
+-- Import all state modules (do this at module level, not in _INIT())
+local menu_state = rf.import("menu_state.lua")      -- Registers "menu"
+local play_state = rf.import("play_state.lua")      -- Registers "play"
+local pause_state = rf.import("pause_state.lua")    -- Registers "pause"
 
-function _init()
-  -- Import all state modules
-  rf.import("menu_state.lua")      -- Registers "menu"
-  rf.import("playing_state.lua")   -- Registers "playing"
-  rf.import("pause_state.lua")     -- Registers "pause"
-  rf.import("game_over_state.lua") -- Registers "game_over"
-  
-  -- Start at menu
-  game.changeState("menu")
+-- Optional: Set context for game-wide data
+if game then
+  game.setContext("demo_name", "My Game")
+  game.setContext("features", {"Feature 1", "Feature 2"})
 end
+
+-- The engine will:
+-- 1. Show engine splash (automatic, 2 seconds or any input to skip)
+-- 2. Transition to menu (automatic, since "menu" is the default initialState)
+-- 3. Your states handle transitions from there
 ```
 
 **Example - menu_state.lua:**
@@ -630,8 +682,12 @@ local selected = 1
 local menu_items = {"START GAME", "OPTIONS", "QUIT"}
 
 function _INIT()
-  -- One-time setup (called once)
-  rf.printh("Menu initialized")
+  -- One-time setup (called once when state is first created)
+  -- Set up credits here when game object is guaranteed to be available
+  if game then
+    game.addCredit("Game", "My Game", "A Retro Game")
+    game.addCredit("Developer", "Your Name", "Programmer")
+  end
 end
 
 function _ENTER()
@@ -641,18 +697,19 @@ function _ENTER()
 end
 
 function _HANDLE_INPUT()
-  -- Navigate menu
-  if rf.btnp(2) then  -- Up
+  -- Handle button presses (instant actions)
+  -- Button 0 = SELECT, Button 1 = START, Button 2 = UP, etc.
+  if rf.btnp(2) then  -- UP button
     selected = selected - 1
     if selected < 1 then selected = #menu_items end
     rf.sfx("cursor")
-  elseif rf.btnp(3) then  -- Down
+  elseif rf.btnp(3) then  -- DOWN button
     selected = selected + 1
     if selected > #menu_items then selected = 1 end
     rf.sfx("cursor")
-  elseif rf.btnp(4) then  -- A button
+  elseif rf.btnp(0) or rf.btnp(6) then  -- SELECT or A button
     if selected == 1 then
-      game.changeState("playing")
+      game.changeState("play")
     elseif selected == 3 then
       game.exit()
     end
@@ -660,7 +717,9 @@ function _HANDLE_INPUT()
 end
 
 function _UPDATE(dt)
-  -- Update animations, timers, etc.
+  -- Handle movement and continuous actions using dt (delta time in seconds)
+  -- dt is frame-rate independent, ensuring consistent speed across platforms
+  -- Example: if dt = 0.016, that's ~60 FPS
 end
 
 function _DRAW()
@@ -680,8 +739,7 @@ function _EXIT()
 end
 
 function _DONE()
-  -- Final cleanup (called once on destroy)
-  rf.printh("Menu destroyed")
+  -- Final cleanup (called once when state is destroyed)
 end
 ```
 

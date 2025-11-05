@@ -348,10 +348,6 @@ export function initAudio(): AudioContext | null {
     // Stop all sources immediately (use currentTime to stop right now)
     sourcesToStop.forEach((source) => {
       try {
-        // Check if source is already stopped
-        if (source.playbackState !== undefined && (source as any).playbackState === 'finished') {
-          return;
-        }
         // Stop immediately at current time
         source.stop(ctx.currentTime);
       } catch (e) {

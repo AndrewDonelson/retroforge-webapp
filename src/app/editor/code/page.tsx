@@ -16,12 +16,66 @@ const AceEditor = dynamic(async () => {
   return mod
 }, { ssr: false })
 
-type FileEntry = { name: string; path: string; language: 'lua' | 'json' | 'text'; content: string; isManifest: boolean; isSFX?: boolean; isMusic?: boolean; isSprites?: boolean }
+type FileEntry = { name: string; path: string; language: 'lua' | 'json' | 'text'; content: string; isManifest: boolean; isSFX?: boolean; isMusic?: boolean; isSprites?: boolean; category?: string }
+
+type FileCategory = {
+  name: string
+  files: FileEntry[]
+}
 
 function getLanguageFromPath(path: string): 'lua' | 'json' | 'text' {
   if (path.endsWith('.lua')) return 'lua'
   if (path.endsWith('.json')) return 'json'
   return 'text'
+}
+
+function categorizeFiles(files: FileEntry[]): FileCategory[] {
+  const categories: Record<string, FileEntry[]> = {
+    'Game Configuration': [],
+    'Audio': [],
+    'Entry Point': [],
+    'States': [],
+    'Graphics': [],
+  }
+
+  files.forEach(file => {
+    const name = file.name.toLowerCase()
+    
+    if (name === 'manifest.json') {
+      categories['Game Configuration'].push(file)
+    } else if (name === 'sfx.json' || name === 'music.json') {
+      categories['Audio'].push(file)
+    } else if (name === 'main.lua') {
+      categories['Entry Point'].push(file)
+    } else if (name.endsWith('_state.lua') || name.endsWith('_state.json')) {
+      categories['States'].push(file)
+    } else if (
+      name === 'sprites.json' ||
+      name.includes('_tileset.json') ||
+      name.includes('_tiles.json') ||
+      name.includes('_map.json') ||
+      name === 'palettes.json' ||
+      name === 'fonts.json' ||
+      name === 'particles.json'
+    ) {
+      categories['Graphics'].push(file)
+    } else if (file.path.includes('/assets/') && name.endsWith('.lua')) {
+      // Other Lua files in assets go to States
+      categories['States'].push(file)
+    } else {
+      // Default to Graphics for any other JSON files, or put in a misc category
+      categories['Graphics'].push(file)
+    }
+  })
+
+  // Return categories in order with proper structure
+  return [
+    { name: 'Game Configuration', files: categories['Game Configuration'] },
+    { name: 'Audio', files: categories['Audio'] },
+    { name: 'Entry Point', files: categories['Entry Point'] },
+    { name: 'States', files: categories['States'] },
+    { name: 'Graphics', files: categories['Graphics'] },
+  ]
 }
 
 export default function CodeEditorPage() {
@@ -287,18 +341,34 @@ export default function CodeEditorPage() {
   }
 
   const aceMode = active?.language === 'lua' ? 'lua' : active?.language === 'json' ? 'json' : 'text'
+  const categorizedFiles = useMemo(() => categorizeFiles(files), [files])
 
   return (
     <div className="h-full flex flex-col">
       <div className="editor-toolbar flex items-center gap-3">
-        <div className="text-sm text-retro-400">Code Editor</div>
+        <div className="text-sm text-retro-400 font-semibold">Code Editor</div>
         <select
-          className="input-retro"
+          className="input-retro min-w-[280px] bg-gray-900 border-gray-700 text-gray-200 focus:border-retro-500 focus:ring-1 focus:ring-retro-500 rounded-md shadow-sm"
           value={activePath}
           onChange={(e) => setActivePath(e.target.value)}
         >
-          {files.map((f) => (
-            <option value={f.path} key={f.path}>{f.name}</option>
+          {categorizedFiles.map((category) => (
+            <optgroup key={category.name} label={category.name}>
+              {category.files.length === 0 ? (
+                <option value="" disabled>
+                  No Assets
+                </option>
+              ) : (
+                category.files.map((file) => (
+                  <option
+                    value={file.path}
+                    key={file.path}
+                  >
+                    {file.name}
+                  </option>
+                ))
+              )}
+            </optgroup>
           ))}
         </select>
         {saveStatus === 'saving' && (

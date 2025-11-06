@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
-import { PRESET_50, type Palette } from '@/data/palettes'
+import { PRESET_64, type Palette } from '@/data/palettes'
 import { useEditor } from '@/contexts/EditorContext'
 
-// 50-color presets (from design doc and generative sets)
-const PRESETS: Palette[] = PRESET_50
+// Use only 64-color palettes (new system)
+const PRESETS: Palette[] = PRESET_64
 
 export default function PalettePage() {
   const { cart, isLoading, updateManifest } = useEditor()
@@ -112,7 +112,7 @@ export default function PalettePage() {
                 }
               }}
             >
-              Reset to RetroForge 50
+              Reset to RetroForge 48
             </button>
           </div>
           <div className="mt-4">
@@ -352,7 +352,9 @@ export default function PalettePage() {
               })}
             </div>
           )}
-          <div className="text-xs text-gray-400 mt-2">Tip: RetroForge expects exactly 50 colors (black, white, 16×3).</div>
+          <div className="text-xs text-gray-400 mt-2">
+            Tip: RetroForge uses 64 colors (16 built-in + 48 game palette).
+          </div>
         </div>
       </div>
     </div>

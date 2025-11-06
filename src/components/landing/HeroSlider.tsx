@@ -85,7 +85,7 @@ export function HeroSlider() {
               <h3 className="text-lg sm:text-xl font-pixel text-retro-400 mb-3">Display</h3>
               <ul className="text-sm sm:text-base text-gray-300 space-y-2">
                 <li>• 480×270 (16:9)</li>
-                <li>• 50-color palettes</li>
+                <li>• 64-color palettes</li>
                 <li>• 60 FPS rendering</li>
                 <li>• Pixel-perfect scaling</li>
               </ul>

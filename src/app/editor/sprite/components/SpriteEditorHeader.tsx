@@ -4,6 +4,8 @@ import { validateSpriteSize } from '../utils/spriteUtils'
 
 interface SpriteEditorHeaderProps {
   onAddSprite: () => void
+  onSave: () => Promise<void>
+  hasUnsavedChanges: boolean
   selectedSpriteName: string | null
   width: number
   height: number
@@ -17,6 +19,8 @@ interface SpriteEditorHeaderProps {
 
 export function SpriteEditorHeader({
   onAddSprite,
+  onSave,
+  hasUnsavedChanges,
   selectedSpriteName,
   width,
   height,
@@ -37,6 +41,19 @@ export function SpriteEditorHeader({
       >
         + Add Sprite
       </button>
+      
+      <div className="h-6 w-px bg-gray-700" />
+      <button
+        className="btn-retro text-xs h-8 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={onSave}
+        disabled={!hasUnsavedChanges}
+        title={hasUnsavedChanges ? "Save changes" : "No unsaved changes"}
+      >
+        💾 Save
+      </button>
+      {hasUnsavedChanges && (
+        <span className="text-xs text-yellow-400">*</span>
+      )}
 
       {selectedSpriteName && (
         <>

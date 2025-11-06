@@ -49,6 +49,33 @@
   }
 }
 
+/* Code Editor File Select Styling */
+select optgroup {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #60a5fa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.25rem;
+  background-color: #1f2937;
+}
+
+select option {
+  padding: 0.5rem 0.75rem;
+  color: #e5e7eb;
+  background-color: #111827;
+}
+
+select option:disabled {
+  color: #6b7280;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+select option:hover {
+  background-color: #374151;
+}
+
 @layer components {
   /* Retro button styles */
   .btn-retro {

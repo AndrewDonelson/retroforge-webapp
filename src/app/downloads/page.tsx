@@ -399,7 +399,7 @@ export default function DownloadsPage() {
             <li>Event bus system for decoupled communication</li>
             <li>Scheduler and runner for frame-based game loops</li>
             <li>Sprite management and sprite pools</li>
-            <li>Palette management (50-color palette system)</li>
+            <li>Palette management (64-color palette system)</li>
             <li>Module system (Lua file imports and hot-reloading in dev mode)</li>
             <li>Cart loading and asset management (.rf file format)</li>
             <li>Soft rendering engine (CPU-based pixel rendering)</li>

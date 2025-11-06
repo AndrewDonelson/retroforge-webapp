@@ -46,6 +46,11 @@ export function useCanvasInteractions({
   const [previewSprite, setPreviewSprite] = useState<SpriteData | null>(null)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
+  const [pastePreview, setPastePreview] = useState<{ x: number; y: number } | null>(null)
+  const [isDraggingPaste, setIsDraggingPaste] = useState(false)
+  const [isMovingSelection, setIsMovingSelection] = useState(false)
+  const [moveStart, setMoveStart] = useState<{ x: number; y: number } | null>(null)
+  const [originalSelection, setOriginalSelection] = useState<Selection | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
 
   // Drawing callbacks
@@ -180,7 +185,27 @@ export function useCanvasInteractions({
     }
   }, [sprite, shapeSize, selectedShape, drawLineCB, drawCircleCB, drawRectangleCB, drawTriangleCB, drawDiamondCB, drawSquareCB, drawPentagonCB, drawHexagonCB, drawStarCB])
 
-  const handlePaste = useCallback((x: number, y: number) => {
+  const handleCopy = useCallback(() => {
+    if (!selection) return
+    const { x0, y0, x1, y1 } = selection
+    const minX = Math.min(x0, x1)
+    const maxX = Math.max(x0, x1)
+    const minY = Math.min(y0, y1)
+    const maxY = Math.max(y0, y1)
+    const copiedWidth = maxX - minX + 1
+    const copiedHeight = maxY - minY + 1
+    const copied: SpriteData = []
+    for (let y = minY; y <= maxY; y++) {
+      const row: number[] = []
+      for (let x = minX; x <= maxX; x++) {
+        row.push(sprite[y][x])
+      }
+      copied.push(row)
+    }
+    return { data: copied, width: copiedWidth, height: copiedHeight }
+  }, [selection, sprite])
+
+  const handlePaste = useCallback((x: number, y: number, commit: boolean = true) => {
     if (!clipboard) return
     const newSprite = sprite.map(row => [...row])
     for (let sy = 0; sy < clipboard.height; sy++) {
@@ -192,10 +217,52 @@ export function useCanvasInteractions({
         }
       }
     }
-    onSpriteChange(newSprite)
-    onHistorySave(newSprite)
-    setSelection(null)
+    if (commit) {
+      onSpriteChange(newSprite)
+      onHistorySave(newSprite)
+      setSelection(null)
+      setPastePreview(null)
+    } else {
+      // Preview mode - show but don't commit
+      setPastePreview({ x, y })
+    }
   }, [clipboard, sprite, width, height, onSpriteChange, onHistorySave])
+
+  const handleCut = useCallback(() => {
+    if (!selection) return null
+    const clipboardData = handleCopy()
+    if (clipboardData) {
+      // Clear the selected area
+      const newSprite = sprite.map(row => [...row])
+      const { x0, y0, x1, y1 } = selection
+      const minX = Math.min(x0, x1)
+      const maxX = Math.max(x0, x1)
+      const minY = Math.min(y0, y1)
+      const maxY = Math.max(y0, y1)
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          newSprite[y][x] = -1 // Transparent
+        }
+      }
+      onSpriteChange(newSprite)
+      onHistorySave(newSprite)
+      setSelection(null)
+    }
+    return clipboardData
+  }, [selection, sprite, handleCopy, onSpriteChange, onHistorySave])
+
+  const handleMove = useCallback(() => {
+    if (!selection) return
+    setIsMovingSelection(true)
+    setOriginalSelection(selection)
+  }, [selection])
+
+  const handleDeselect = useCallback(() => {
+    setSelection(null)
+    setIsMovingSelection(false)
+    setOriginalSelection(null)
+    setMoveStart(null)
+  }, [])
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -216,10 +283,47 @@ export function useCanvasInteractions({
       return
     }
     
-    // Handle paste on click
-    if (clipboard && e.shiftKey && !e.ctrlKey) {
-      handlePaste(x - Math.floor(clipboard.width / 2), y - Math.floor(clipboard.height / 2))
+    // Handle paste preview drag or commit (only if not using a drawing tool)
+    if (pastePreview && clipboard && !['line', 'circle', 'rectangle', 'shape', 'pencil', 'erase', 'fill'].includes(tool)) {
+      // Check if clicking on paste preview area
+      const previewX = pastePreview.x
+      const previewY = pastePreview.y
+      if (x >= previewX && x < previewX + clipboard.width && 
+          y >= previewY && y < previewY + clipboard.height) {
+        // Start dragging paste preview
+        setIsDraggingPaste(true)
+        return
+      } else {
+        // Commit paste at current position
+        handlePaste(pastePreview.x, pastePreview.y, true)
+        return
+      }
+    }
+    
+    // Handle paste on click (Shift+Click) - only if not using a drawing tool
+    if (clipboard && e.shiftKey && !e.ctrlKey && !pastePreview && !['line', 'circle', 'rectangle', 'shape', 'pencil', 'erase', 'fill'].includes(tool)) {
+      handlePaste(x - Math.floor(clipboard.width / 2), y - Math.floor(clipboard.height / 2), false)
+      setIsDraggingPaste(true)
       return
+    }
+    
+    // Handle moving selection - check if clicking inside selection bounds
+    if (isMovingSelection && originalSelection) {
+      const { x0, y0, x1, y1 } = originalSelection
+      const minX = Math.min(x0, x1)
+      const maxX = Math.max(x0, x1)
+      const minY = Math.min(y0, y1)
+      const maxY = Math.max(y0, y1)
+      // Check if clicking inside selection
+      if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+        setMoveStart({ x, y })
+        return
+      } else {
+        // Clicked outside selection, exit move mode and continue with normal tool handling
+        setIsMovingSelection(false)
+        setOriginalSelection(null)
+        // Don't return - continue to handle the tool normally
+      }
     }
     
     if (tool === 'eyedropper') {
@@ -244,16 +348,81 @@ export function useCanvasInteractions({
       setIsDrawing(true)
       const newSprite = drawAt(x, y, color)
       onSpriteChange(newSprite)
-    } else if (['line', 'circle', 'rectangle', 'shape'].includes(tool)) {
+    } else if (tool === 'line' || tool === 'circle' || tool === 'rectangle' || tool === 'shape') {
       setIsDrawing(true)
       setShapeStart({ x, y })
       setPreviewSprite(sprite)
     }
-  }, [tool, selectedColor, sprite, getCoords, drawAt, floodFillCB, onSpriteChange, onHistorySave, mountPointMode, mountPoints, onMountPointsChange, clipboard, handlePaste, onSelectedColorChange])
+  }, [tool, selectedColor, sprite, getCoords, drawAt, floodFillCB, onSpriteChange, onHistorySave, mountPointMode, mountPoints, onMountPointsChange, clipboard, handlePaste, onSelectedColorChange, pastePreview, isMovingSelection, originalSelection])
 
   const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const coords = getCoords(e)
     if (!coords) return
+    
+    // Handle paste preview dragging
+    if (isDraggingPaste && clipboard && pastePreview) {
+      const [x, y] = coords
+      handlePaste(x - Math.floor(clipboard.width / 2), y - Math.floor(clipboard.height / 2), false)
+      return
+    }
+    
+    // Handle moving selection
+    if (isMovingSelection && moveStart && originalSelection) {
+      const [x, y] = coords
+      const dx = x - moveStart.x
+      const dy = y - moveStart.y
+      
+      const { x0, y0, x1, y1 } = originalSelection
+      const minX = Math.min(x0, x1)
+      const maxX = Math.max(x0, x1)
+      const minY = Math.min(y0, y1)
+      const maxY = Math.max(y0, y1)
+      const selWidth = maxX - minX + 1
+      const selHeight = maxY - minY + 1
+      
+      // Calculate new position
+      const newMinX = Math.max(0, Math.min(width - selWidth, minX + dx))
+      const newMinY = Math.max(0, Math.min(height - selHeight, minY + dy))
+      const newMaxX = newMinX + selWidth - 1
+      const newMaxY = newMinY + selHeight - 1
+      
+      // Update selection preview
+      setSelection({ x0: newMinX, y0: newMinY, x1: newMaxX, y1: newMaxY })
+      
+      // Create preview sprite with moved content
+      const newSprite = sprite.map(row => [...row])
+      const copied: SpriteData = []
+      
+      // Copy selected area from original position
+      for (let y = minY; y <= maxY; y++) {
+        const row: number[] = []
+        for (let x = minX; x <= maxX; x++) {
+          row.push(sprite[y][x])
+        }
+        copied.push(row)
+      }
+      
+      // Clear original area
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          newSprite[y][x] = -1 // Transparent
+        }
+      }
+      
+      // Draw at new position
+      for (let sy = 0; sy < selHeight; sy++) {
+        for (let sx = 0; sx < selWidth; sx++) {
+          const px = newMinX + sx
+          const py = newMinY + sy
+          if (px >= 0 && px < width && py >= 0 && py < height) {
+            newSprite[py][px] = copied[sy][sx]
+          }
+        }
+      }
+      
+      setPreviewSprite(newSprite)
+      return
+    }
     
     if (tool === 'select' && isSelecting && selection) {
       setSelection({ ...selection, x1: coords[0], y1: coords[1] })
@@ -272,9 +441,27 @@ export function useCanvasInteractions({
       const newSprite = drawShape(shapeStart, coords, tool, color, shapeFilled)
       setPreviewSprite(newSprite)
     }
-  }, [isDrawing, tool, selectedColor, shapeStart, shapeFilled, sprite, getCoords, drawAt, drawShape, isSelecting, selection])
+  }, [isDrawing, tool, selectedColor, shapeStart, shapeFilled, sprite, getCoords, drawAt, drawShape, isSelecting, selection, isDraggingPaste, clipboard, pastePreview, isMovingSelection, moveStart, originalSelection, width, height])
 
   const handleCanvasMouseUp = useCallback(() => {
+    // Commit paste if dragging
+    if (isDraggingPaste && pastePreview && clipboard) {
+      handlePaste(pastePreview.x, pastePreview.y, true)
+      setIsDraggingPaste(false)
+      return
+    }
+    
+    // Commit move if dragging
+    if (isMovingSelection && moveStart && originalSelection && previewSprite) {
+      onSpriteChange(previewSprite)
+      onHistorySave(previewSprite)
+      setPreviewSprite(null)
+      setIsMovingSelection(false)
+      setMoveStart(null)
+      setOriginalSelection(null)
+      return
+    }
+    
     if (tool === 'select' && isSelecting && selection) {
       setIsSelecting(false)
       const minX = Math.max(0, Math.min(selection.x0, selection.x1))
@@ -296,27 +483,7 @@ export function useCanvasInteractions({
       onHistorySave(sprite)
     }
     setIsDrawing(false)
-  }, [isDrawing, tool, shapeStart, previewSprite, sprite, onSpriteChange, onHistorySave, isSelecting, selection, width, height])
-
-  const handleCopy = useCallback(() => {
-    if (!selection) return
-    const { x0, y0, x1, y1 } = selection
-    const minX = Math.min(x0, x1)
-    const maxX = Math.max(x0, x1)
-    const minY = Math.min(y0, y1)
-    const maxY = Math.max(y0, y1)
-    const copiedWidth = maxX - minX + 1
-    const copiedHeight = maxY - minY + 1
-    const copied: SpriteData = []
-    for (let y = minY; y <= maxY; y++) {
-      const row: number[] = []
-      for (let x = minX; x <= maxX; x++) {
-        row.push(sprite[y][x])
-      }
-      copied.push(row)
-    }
-    return { data: copied, width: copiedWidth, height: copiedHeight }
-  }, [selection, sprite])
+  }, [isDrawing, tool, shapeStart, previewSprite, sprite, onSpriteChange, onHistorySave, isSelecting, selection, width, height, isDraggingPaste, pastePreview, clipboard, handlePaste, isMovingSelection, moveStart, originalSelection])
 
   const displaySprite = previewSprite || sprite
 
@@ -324,10 +491,16 @@ export function useCanvasInteractions({
     canvasRef,
     selection,
     displaySprite,
+    pastePreview,
+    clipboard,
+    isMovingSelection,
     handleCanvasMouseDown,
     handleCanvasMouseMove,
     handleCanvasMouseUp,
     handleCopy,
+    handleCut,
+    handleMove,
+    handleDeselect,
     handlePaste,
   }
 }

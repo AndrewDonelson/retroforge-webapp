@@ -8,7 +8,7 @@ import { api } from '@/convex/_generated/api'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function MapEditorPage() {
-  const { cart, isLoading: cartLoading, updateAsset } = useEditor()
+  const { cart, cartId, isLoading: cartLoading, updateAsset } = useEditor()
   const { user } = useAuth()
   const saveFile = useMutation(api.cartFiles.saveCartFile)
 
@@ -92,7 +92,7 @@ export default function MapEditorPage() {
   }, [tileSize, mapWidth, mapHeight])
 
   const saveTilemap = useCallback(async (tilemapName: string, tilemapData: TileMap) => {
-    if (!cart?.cartId || !user) {
+    if (!cartId || !user) {
       console.warn('Cannot save tilemap: missing cart or user')
       return
     }
@@ -100,7 +100,7 @@ export default function MapEditorPage() {
       const content = JSON.stringify(tilemapData, null, 2)
       const path = `assets/${tilemapName}_map.json`
       await saveFile({
-        cartId: cart.cartId,
+        cartId: cartId,
         path,
         content,
         ownerId: user?.userId,
@@ -112,7 +112,7 @@ export default function MapEditorPage() {
       console.error('Failed to save tilemap:', error)
       alert(`Failed to save tilemap: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
-  }, [cart?.cartId, cart, user, saveFile, updateAsset])
+  }, [cartId, cart, user, saveFile, updateAsset])
 
   const commitPaste = useCallback((x: number, y: number) => {
     if (!clipboard || !currentTilemap) return
@@ -254,8 +254,9 @@ export default function MapEditorPage() {
 
   const handleCut = useCallback(() => {
     if (!currentTilemap) return
-    const clipboardData = handleCopy()
-    if (clipboardData) {
+    handleCopy()
+    // Use clipboard state directly after copy
+    if (clipboard) {
       // Clear the selected area
       const newTiles = currentTilemap.tiles.map(row => [...row])
       if (selection) {
@@ -273,8 +274,8 @@ export default function MapEditorPage() {
         }
       } else {
         // Clear default area
-        for (let y = 0; y < Math.min(clipboardData.height, mapHeight); y++) {
-          for (let x = 0; x < Math.min(clipboardData.width, mapWidth); x++) {
+        for (let y = 0; y < Math.min(clipboard.height, mapHeight); y++) {
+          for (let x = 0; x < Math.min(clipboard.width, mapWidth); x++) {
             newTiles[y][x] = ''
           }
         }
@@ -344,7 +345,7 @@ export default function MapEditorPage() {
 
   // Manual save function - saves all tilemaps
   const saveAllTilemaps = useCallback(async () => {
-    if (!cart?.cartId || !user) {
+    if (!cartId || !user) {
       console.warn('Cannot save: missing cart or user')
       return false
     }
@@ -366,7 +367,7 @@ export default function MapEditorPage() {
       alert(`Failed to save tilemaps: ${error instanceof Error ? error.message : 'Unknown error'}`)
       return false
     }
-  }, [tilemaps, cart?.cartId, user, saveTilemap])
+  }, [tilemaps, cartId, user, saveTilemap])
 
   // Check if there are unsaved changes
   const hasUnsavedChanges = useMemo(() => {

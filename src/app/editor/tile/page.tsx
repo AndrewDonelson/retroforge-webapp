@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useEditor } from '@/contexts/EditorContext'
 import type { TilesetMap, TilesetData } from '@/lib/cartUtils'
-import type { Tool, SpriteData } from '../sprite/types'
+import type { Tool, SpriteData, SimpleShape } from '../sprite/types'
 import { useHistory } from '../sprite/hooks/useHistory'
 import { useCanvasInteractions } from '../sprite/hooks/useCanvasInteractions'
 import { useSpriteTransformations } from '../sprite/hooks/useSpriteTransformations'
@@ -19,7 +19,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { PRESET_64 } from '@/data/palettes'
 
 export default function TileEditorPage() {
-  const { cart, isLoading: cartLoading, updateAsset } = useEditor()
+  const { cart, cartId, isLoading: cartLoading, updateAsset } = useEditor()
   const { user } = useAuth()
   const saveFile = useMutation(api.cartFiles.saveCartFile)
 
@@ -189,11 +189,12 @@ export default function TileEditorPage() {
     
     if (tile.pixels) {
       // Deep compare sprite pixels to avoid unnecessary updates
+      const tilePixels = tile.pixels // Capture to satisfy TypeScript
       setSprite((prev) => {
         const prevKey = JSON.stringify(prev)
-        const newKey = JSON.stringify(tile.pixels)
+        const newKey = JSON.stringify(tilePixels)
         if (prevKey === newKey) return prev
-        return tile.pixels.map(row => [...row])
+        return tilePixels.map(row => [...row])
       })
     } else {
       setSprite((prev) => {
@@ -318,7 +319,7 @@ export default function TileEditorPage() {
   const isDrawingTool = ['line', 'circle', 'rectangle'].includes(tool)
 
   const saveTileset = useCallback(async (tilesetName: string, tilesetData: TilesetData) => {
-    if (!cart?.cartId || !user) {
+    if (!cartId || !user) {
       console.warn('Cannot save tileset: missing cart or user')
       return
     }
@@ -326,7 +327,7 @@ export default function TileEditorPage() {
       const content = JSON.stringify(tilesetData, null, 2)
       const path = `assets/${tilesetName}_tileset.json`
       await saveFile({
-        cartId: cart.cartId,
+        cartId: cartId,
         path,
         content,
         ownerId: user?.userId,
@@ -342,7 +343,7 @@ export default function TileEditorPage() {
       console.error('Failed to save tileset:', error)
       alert(`Failed to save tileset: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
-  }, [cart?.cartId, cart, user, saveFile, updateAsset])
+  }, [cartId, cart, user, saveFile, updateAsset])
 
   const handleUndo = useCallback(async () => {
     undo(sprite, async (newSprite) => {
@@ -540,7 +541,7 @@ export default function TileEditorPage() {
 
   // Manual save function - saves all tilesets
   const saveAllTilesets = useCallback(async () => {
-    if (!cart?.cartId || !user) {
+    if (!cartId || !user) {
       console.warn('Cannot save: missing cart or user')
       return false
     }
@@ -562,7 +563,7 @@ export default function TileEditorPage() {
       alert(`Failed to save tilesets: ${error instanceof Error ? error.message : 'Unknown error'}`)
       return false
     }
-  }, [tilesets, cart?.cartId, user, saveTileset])
+  }, [tilesets, cartId, user, saveTileset])
 
   // Check if there are unsaved changes
   const hasUnsavedChanges = useMemo(() => {
@@ -822,10 +823,18 @@ export default function TileEditorPage() {
 
       {showShapeModal && (
         <ShapeSelectorModal
+          shapeSize={shapeSize}
+          shapeFilled={shapeFilled}
+          maxSize={Math.max(width, height)}
           onSelectShape={(shape) => {
-            setSelectedShape(shape)
+            // Handle both basic shapes (line, circle, rectangle) and advanced shapes
+            if (shape === 'line' || shape === 'circle' || shape === 'rectangle') {
+              setTool(shape as Tool)
+            } else {
+              setSelectedShape(shape as SimpleShape)
+              setTool('shape')
+            }
             setShowShapeModal(false)
-            setTool('shape')
           }}
           onClose={() => setShowShapeModal(false)}
         />

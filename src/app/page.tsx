@@ -3,6 +3,8 @@
 import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { HeroSlider } from '@/components/landing/HeroSlider'
+import { BannerAd, DisplayAd, InArticleAd } from '@/components/ads'
+import { AD_SLOTS } from '@/lib/adSlots'
 
 export default function HomePage() {
   // Fetch community statistics (optional, won't break if fails)
@@ -19,6 +21,9 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-900">
       {/* Fullscreen Hero Slider */}
       <HeroSlider />
+
+      {/* AD 1: High visibility banner after hero */}
+      <BannerAd adSlot={AD_SLOTS.banner1} />
 
       {/* Stats Section - Below the slider */}
       <section className="py-16 bg-gray-900 border-t border-gray-800">
@@ -44,6 +49,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* AD 2: After stats section */}
+      <DisplayAd adSlot={AD_SLOTS.display1} size="300x250" />
 
       {/* Quick Links Section */}
       <section className="py-16 bg-gray-800/50">
@@ -91,6 +99,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* AD 3: Mid-content after quick links */}
+      <InArticleAd adSlot={AD_SLOTS.article1} />
+
       {/* Engine GitHub CTA */}
       <section className="py-16 bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -111,6 +122,9 @@ export default function HomePage() {
           </a>
         </div>
       </section>
+
+      {/* AD 4: Before final CTA */}
+      <DisplayAd adSlot={AD_SLOTS.display2} size="336x280" />
     </div>
   )
 }

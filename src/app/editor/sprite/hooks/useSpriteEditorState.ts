@@ -47,8 +47,8 @@ export function useSpriteEditorState() {
 
   // Load sprites from cart - filter out .rpi files
   useEffect(() => {
-    // Don't load if we're currently saving (prevents loop)
-    if (isSavingRef.current) return
+    // Don't load if we're currently loading (prevents loop)
+    if (isLoadingFromCartRef.current) return
     
     if (!cart?.sprites) {
       if (Object.keys(sprites).length > 0) {

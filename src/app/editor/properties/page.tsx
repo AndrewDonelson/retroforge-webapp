@@ -6,7 +6,7 @@ import { Suspense, useEffect } from 'react'
 import { useMutation } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useAuth } from '@/contexts/AuthContext'
-import { PRESET_50 } from '@/data/palettes'
+import { PRESET_64 } from '@/data/palettes'
 
 function PropertiesPageInner() {
   const { cart, isLoading, updateManifest, error, cartId } = useEditor()
@@ -123,7 +123,7 @@ function PropertiesPageInner() {
                 onChange={(e) => updateManifest({ palette: e.target.value || undefined })}
               >
                 <option value="">Default</option>
-                {PRESET_50.map(p => (
+                {PRESET_64.map(p => (
                   <option key={p.name} value={p.name}>{p.name}</option>
                 ))}
               </select>

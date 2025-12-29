@@ -63,10 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize from localStorage
   useEffect(() => {
-    if (stored.publicKey && stored.username && getChallengeQuery) {
+    const keys = getStoredKeys()
+    if (keys.publicKey && keys.username && getChallengeQuery) {
       // Try to authenticate
-      authenticateWithStoredKey(stored.publicKey)
-    } else if (!stored.publicKey) {
+      authenticateWithStoredKey(keys.publicKey).catch((error) => {
+        // Error already handled in authenticateWithStoredKey
+        console.debug('Auto-authentication skipped:', error instanceof Error ? error.message : 'Unknown error')
+      })
+    } else if (!keys.publicKey) {
       setIsLoading(false)
     }
   }, [getChallengeQuery])
@@ -124,8 +128,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Authentication failed:', error)
+      // Clear stored keys if user not found or authentication fails
+      // This handles cases where the user account was deleted or public key changed
       clearKeys()
       setUser(null)
+      // Don't show error to user - just silently clear and let them log in again
     } finally {
       setIsLoading(false)
     }

@@ -63,6 +63,8 @@ export default function SpriteEditorPage() {
     setSelectedAnimation,
     setAnimationPlaying,
     saveCurrentSprite,
+    saveSprites,
+    hasUnsavedChanges,
   } = state
 
   // History management
@@ -105,10 +107,16 @@ export default function SpriteEditorPage() {
     canvasRef,
     selection,
     displaySprite,
+    pastePreview,
+    clipboard: clipboardFromCanvas,
+    isMovingSelection,
     handleCanvasMouseDown,
     handleCanvasMouseMove,
     handleCanvasMouseUp,
     handleCopy: handleCopyFromCanvas,
+    handleCut: handleCutFromCanvas,
+    handleMove: handleMoveFromCanvas,
+    handleDeselect: handleDeselectFromCanvas,
     handlePaste,
   } = canvasInteractions
 
@@ -175,22 +183,37 @@ export default function SpriteEditorPage() {
     }
   }, [handleCopyFromCanvas])
 
+  // Handle cut
+  const handleCut = useCallback(() => {
+    const clipboardData = handleCutFromCanvas()
+    if (clipboardData) {
+      setClipboard(clipboardData)
+    }
+  }, [handleCutFromCanvas])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'c' && selection) {
         e.preventDefault()
         handleCopy()
+      } else if ((e.ctrlKey || e.metaKey) && e.key === 'x' && selection) {
+        e.preventDefault()
+        handleCut()
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'v' && clipboard) {
         e.preventDefault()
-        const centerX = Math.floor(width / 2)
-        const centerY = Math.floor(height / 2)
-        handlePaste(centerX - Math.floor(clipboard.width / 2), centerY - Math.floor(clipboard.height / 2))
+        if (!pastePreview) {
+          const centerX = Math.floor(width / 2)
+          const centerY = Math.floor(height / 2)
+          handlePaste(centerX - Math.floor(clipboard.width / 2), centerY - Math.floor(clipboard.height / 2), false)
+        }
+      } else if (e.key === 'Escape' && pastePreview) {
+        setClipboard(null)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selection, clipboard, width, height, handleCopy, handlePaste])
+  }, [selection, clipboard, pastePreview, width, height, handleCopy, handleCut, handlePaste])
 
   // Calculate pixel size
   const pixelSize = useMemo(() => {
@@ -207,17 +230,33 @@ export default function SpriteEditorPage() {
   const isDrawingTool = ['line', 'circle', 'rectangle'].includes(tool)
 
   const handleUndo = useCallback(() => {
-    undo(sprite, setSprite)
-  }, [undo, sprite, setSprite])
+    undo(sprite, (newSprite) => {
+      setSprite(newSprite)
+      // Immediately save after undo
+      if (selectedSpriteName) {
+        saveCurrentSprite()
+      }
+    })
+  }, [undo, sprite, selectedSpriteName, saveCurrentSprite])
 
   const handleRedo = useCallback(() => {
-    redo(setSprite)
-  }, [redo, setSprite])
+    redo((newSprite) => {
+      setSprite(newSprite)
+      // Immediately save after redo
+      if (selectedSpriteName) {
+        saveCurrentSprite()
+      }
+    })
+  }, [redo, selectedSpriteName, saveCurrentSprite])
 
-  const handleShapeSelect = useCallback((shape: SimpleShape) => {
-    setSelectedShape(shape)
-    setShowShapeModal(false)
-    setTool('shape')
+  const handleShapeSelect = useCallback((shape: SimpleShape | 'line' | 'circle' | 'rectangle') => {
+    if (shape === 'line' || shape === 'circle' || shape === 'rectangle') {
+      setTool(shape)
+      setShowShapeModal(false)
+    } else {
+      setSelectedShape(shape)
+      setTool('shape')
+    }
   }, [setTool])
 
   // Handle sprite type change
@@ -236,6 +275,24 @@ export default function SpriteEditorPage() {
     }
   }, [sprite, frames, setSpriteType, setFrames, setCurrentFrameName])
 
+  // Warn before leaving page with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+        return e.returnValue
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  // Handle save button click
+  const handleSave = useCallback(async () => {
+    await saveSprites()
+  }, [saveSprites])
+
   if (cartLoading || !cart) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -249,6 +306,8 @@ export default function SpriteEditorPage() {
       {/* Header */}
       <SpriteEditorHeader
         onAddSprite={spriteActions.handleAddSprite}
+        onSave={handleSave}
+        hasUnsavedChanges={hasUnsavedChanges}
         selectedSpriteName={selectedSpriteName}
         width={width}
         height={height}
@@ -293,6 +352,7 @@ export default function SpriteEditorPage() {
                 isDrawingTool={isDrawingTool}
                 selection={selection}
                 clipboard={clipboard}
+                isMovingSelection={isMovingSelection}
                 width={width}
                 height={height}
                 historyIndex={historyIndex}
@@ -303,6 +363,9 @@ export default function SpriteEditorPage() {
                 onSetShapeSize={setShapeSize}
                 onShowShapeModal={() => setShowShapeModal(true)}
                 onCopy={handleCopy}
+                onCut={handleCut}
+                onMove={handleMoveFromCanvas}
+                onDeselect={handleDeselectFromCanvas}
                 onPaste={handlePaste}
                 onUndo={handleUndo}
                 onRedo={handleRedo}
@@ -330,7 +393,14 @@ export default function SpriteEditorPage() {
                     <div className="card-retro p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="text-sm font-semibold text-gray-200">Canvas</div>
-                        <div className="text-xs text-gray-500">{width}×{height}px</div>
+                        <div className="flex items-center gap-3">
+                          {selection && (
+                            <div className="text-xs text-retro-400 font-mono">
+                              Selection: {Math.abs(selection.x1 - selection.x0) + 1}×{Math.abs(selection.y1 - selection.y0) + 1} @ ({Math.min(selection.x0, selection.x1)},{Math.min(selection.y0, selection.y1)})
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500">{width}×{height}px</div>
+                        </div>
                       </div>
                       <div className="flex justify-center items-start gap-6 flex-wrap">
                         <SpriteCanvas
@@ -342,6 +412,8 @@ export default function SpriteEditorPage() {
                           currentPalette={currentPalette}
                           selection={selection}
                           mountPoints={mountPoints}
+                          pastePreview={pastePreview}
+                          clipboard={clipboard}
                           canvasRef={canvasRef}
                           onMouseDown={handleCanvasMouseDown}
                           onMouseMove={handleCanvasMouseMove}
@@ -472,6 +544,7 @@ export default function SpriteEditorPage() {
       {showShapeModal && (
         <ShapeSelectorModal
           selectedShape={selectedShape}
+          currentTool={tool}
           shapeSize={shapeSize}
           shapeFilled={shapeFilled}
           maxSize={Math.max(width, height)}

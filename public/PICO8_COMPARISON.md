@@ -13,7 +13,6 @@ A comprehensive feature-by-feature comparison between PICO-8 (the most popular f
 | **Cart Size Limit** | 32 KB | 512 KB | RetroForge 16x PICO-8 capacity |
 | **Built-in Editor** | ✅ Yes (all-in-one) | ❌ No (separate webapp) | PICO-8 has integrated IDE |
 | **Sprite System** | ✅ Sprite sheet (8×8) | ✅ JSON-based sprites | Different approaches |
-| **Sprite Pooling** | ❌ No | ✅ Automatic (transparent) | RetroForge pools high-spawn sprites automatically |
 | **Tilemap** | ✅ Yes | ✅ Yes | Both implemented |
 | **Camera/Viewport** | ✅ Yes | ✅ Yes | Both implemented |
 | **Physics** | ❌ Manual | ✅ Box2D | RetroForge has physics |
@@ -212,7 +211,6 @@ rf.shift()                      -- Alias for rf.btn(10) - TURBO button
 ✅ **RetroForge Universal 11-Button System** - Consistent across desktop, mobile, and tablet platforms  
 ✅ **Mobile Controller Support** - Automatic on-screen controller with optimized layouts for portrait/landscape  
 ✅ **Frame-Rate Independence** - Uses actual delta time, ensuring consistent speed across WASM and desktop builds  
-✅ **Double Buffering** - Prevents flicker/blur with smooth rendering on all platforms  
 ✅ **Multi-player Input** - WebRTC-based networking with up to 6 players  
 
 ---
@@ -283,26 +281,16 @@ rf.sspr("player", sx, sy, sw, sh, dx, dy) -- Draw sprite region
 
 -- Sprite Data Access (optional)
 local spr = rf.sprite("player")
--- Returns: {width, height, pixels, useCollision, mountPoints, isUI, lifetime, maxSpawn}
-
--- Automatic Sprite Pooling
--- Sprites with isUI=false AND maxSpawn>10 are automatically pooled
--- No developer code changes needed - pooling is transparent
-rf.setSpriteProperty("bullet", "isUI", false)
-rf.setSpriteProperty("bullet", "maxSpawn", 50)  -- Pool created automatically
+-- Returns: {width, height, pixels, useCollision, mountPoints}
 -- Manual drawing still possible via spr.pixels array if needed
 ```
 
 **Features:**
-- Flexible sizes (8×8 to 256×256)
+- Flexible sizes (8×8 to 32×32)
 - JSON-based storage
 - Collision metadata (`useCollision`)
 - Mount points for projectiles/thrusters
 - Named mount points (access by index or name)
-- **Automatic Sprite Pooling:** High-spawn sprites (maxSpawn>10, isUI=false) are automatically pooled for performance
-  - Pools are created/removed automatically based on sprite properties
-  - Transparent to developers - no code changes needed
-  - Reduces garbage collection pressure for frequently spawned sprites
 
 **Differences:**
 - PICO-8: Fixed 8×8, built-in rendering
@@ -371,164 +359,6 @@ rf.reload(dest_addr, src_addr, len) -- Copy from cart storage to runtime memory
 - RetroForge: Flexible storage, JSON-based, full memory access API ✅
 - PICO-8: Cart persistence via `cstore()` / `reload()`
 - RetroForge: Cart persistence via `rf.cstore()` / `rf.reload()` ✅
-
----
-
-## 🎮 State Management & Organization
-
-### PICO-8 State Management
-
-❌ **No built-in state machine:**
-- Developers manually manage game states using variables and if/else logic
-- Common pattern: `if state == "menu" then ... elseif state == "playing" then ... end`
-- No lifecycle callbacks or state transitions
-- No shared context between states
-
-**Typical PICO-8 Approach:**
-```lua
-state = "menu"
-
-function _update()
-  if state == "menu" then
-    update_menu()
-  elseif state == "playing" then
-    update_game()
-  elseif state == "game_over" then
-    update_game_over()
-  end
-end
-
-function _draw()
-  if state == "menu" then
-    draw_menu()
-  elseif state == "playing" then
-    draw_game()
-  elseif state == "game_over" then
-    draw_game_over()
-  end
-end
-```
-
-### RetroForge State Machine System
-
-✅ **Flexible State Machine API:**
-- Lifecycle callbacks: `initialize`, `enter`, `handleInput`, `update`, `draw`, `exit`, `shutdown`
-- State stacking: Push/pop states for overlays (e.g., pause menus)
-- Shared context: Pass data between states
-- Built-in engine splash and credits states
-- State registration and management
-
-**State Machine API:**
-```lua
--- Register a state
-game.registerState("menu", {
-  initialize = function(sm) end,
-  enter = function(sm) end,
-  handleInput = function(sm) end,
-  update = function(dt) end,
-  draw = function() end,
-  exit = function(sm) end,
-  shutdown = function() end
-})
-
--- State transitions
-game.changeState("playing")     -- Replace current state
-game.pushState("pause")         -- Add overlay state
-game.popState()                 -- Remove overlay state
-
--- Shared context
-game.setContext("score", 1000)
-local score = game.getContext("score")
-```
-
-**Features:**
-- ✅ State lifecycle management
-- ✅ State stacking (overlays)
-- ✅ Shared context between states
-- ✅ Built-in engine splash (non-debug mode)
-- ✅ Built-in credits state
-- ✅ Protected built-in states (can't directly change to splash/credits)
-
----
-
-## 📦 Module-Based State System
-
-### RetroForge Module System
-
-✅ **Convention-Based State Modules:**
-- Each state in its own `.lua` file
-- Automatic registration via `rf.import()`
-- Module-level variable persistence
-- Shared `context` table across all modules
-
-**Module Import:**
-```lua
--- main.lua
-context = {
-  player = {x = 100, y = 100, lives = 3},
-  score = 0
-}
-
-function _init()
-  rf.import("menu_state.lua")      -- Registers "menu"
-  rf.import("playing_state.lua")   -- Registers "playing"
-  rf.import("pause_state.lua")     -- Registers "pause"
-  
-  game.changeState("menu")
-end
-```
-
-**State Module (menu_state.lua):**
-```lua
--- Module-level state (persists across enter/exit)
-local selected = 1
-local menu_items = {"START", "OPTIONS", "QUIT"}
-
-function _INIT()
-  -- One-time setup
-end
-
-function _ENTER()
-  -- Called every activation
-  selected = 1
-end
-
-function _HANDLE_INPUT()
-  -- Input processing
-end
-
-function _UPDATE(dt)
-  -- Game logic
-end
-
-function _DRAW()
-  -- Rendering
-end
-
-function _EXIT()
-  -- Cleanup
-end
-
-function _DONE()
-  -- Final teardown
-end
-```
-
-**Benefits:**
-- ✅ Separation of concerns (one file per state)
-- ✅ Convention over configuration (standard function names)
-- ✅ Automatic registration (no manual `game.registerState()`)
-- ✅ Module-level persistence (variables persist across enter/exit)
-- ✅ Cleaner `main.lua` (minimal entry point)
-
-**File Naming:**
-- `menu_state.lua` → state name: `"menu"`
-- `playing_state.lua` → state name: `"playing"`
-- `pause.lua` → state name: `"pause"`
-
-**PICO-8 Comparison:**
-- ❌ PICO-8: No module system, all code in one file or manual includes
-- ✅ RetroForge: Module-based states with automatic registration
 
 ---
 
@@ -697,7 +527,6 @@ rf.quit()                       -- Request quit
 ✅ **Additional Shapes:** Triangle, Diamond, Square, Pentagon, Hexagon, Star  
 ✅ **Sprite Mount Points:** Named mount points for projectiles/thrusters  
 ✅ **Sprite Collision Metadata:** `useCollision` flag  
-✅ **Automatic Sprite Pooling:** High-spawn sprites (maxSpawn>10, isUI=false) are automatically pooled for performance - transparent to developers  
 ✅ **50-Color Palette:** More colors than PICO-8's 16  
 ✅ **State-Based Palette Switching:** Each state can use a different palette, allowing more than 50 colors across the game (but only 50 at a time)  
 ✅ **Higher Resolution:** 480×270 vs 128×128  
@@ -712,7 +541,6 @@ rf.quit()                       -- Request quit
 ✅ **Physics Engine:** Box2D integration (fully implemented)  
 ✅ **Feature Parity:** All core PICO-8 graphics/tilemap/camera/memory APIs implemented  
 ✅ **State Machine:** Flexible state management system with lifecycle callbacks, state stacking, and shared context  
-✅ **Module-Based States:** Convention-based state modules with automatic registration via `rf.import()`  
 ✅ **Automatic Engine Splash:** 2-second splash screen with automatic state transitions  
 ✅ **Node System:** Godot-style scene graph (planned)  
 ✅ **Multiplayer:** WebRTC-based multiplayer support (up to 6 players) with automatic state sync  
@@ -727,7 +555,6 @@ rf.quit()                       -- Request quit
 - **✅ Tilemap System** - `rf.map()`, `rf.mget()`, `rf.mset()` functions fully implemented
 - **✅ Camera System** - `rf.camera()` function for viewport control
 - **✅ Sprite Drawing** - `rf.spr()` / `rf.sspr()` functions for drawing sprites
-- **✅ Automatic Sprite Pooling** - Sprites with `isUI=false` AND `maxSpawn>10` are automatically pooled for performance
 - **✅ Pixel Reading** - `rf.pget()` to read screen pixels
 - **✅ Color Remapping** - `rf.pal()` for runtime color swapping
 - **✅ Clipping** - `rf.clip()` for drawing regions
@@ -743,13 +570,16 @@ rf.quit()                       -- Request quit
 - **✅ Command Mode** - Save, load, export commands available in webapp
 - **✅ System Stats** - `rf.stat()` function for system statistics (development mode only)
 - **✅ Text Cursor** - `rf.cursor()` / `rf.color()` state management
+- **✅ Image Tool (imgtool)** - CLI tool for converting PNG images to RetroForge sprites and palettes
+- **✅ Tile2ISO Tool** - CLI tool for converting 2D top-down sprites into isometric (2.5D) tiles with multiple lighting modes
 
-**State Management:**
-- **✅ State Machine** - Flexible state management with lifecycle callbacks, state stacking, shared context
-- **✅ Module-Based States** - Convention-based state modules with `rf.import()` for automatic registration
-
-**Coming Soon:**
-- **🔄 Multi-player Input** - WebRTC-based networking support (Note: Multiplayer networking is already implemented, but this may refer to additional input features)
+**Implemented:**
+- **✅ Multi-player Support** - WebRTC-based networking with up to 6 players
+  - `rf.is_multiplayer()`, `rf.player_count()`, `rf.is_host()`, `rf.my_player_id()`
+  - `rf.network_sync(table, tier)` for automatic state synchronization
+  - `rf.btn(player_id, button)` for host to check other players' inputs
+  - 3-tier sync system (fast/moderate/slow)
+  - Host authority model with star topology
 
 ### ❌ Missing / Different Approach
 
@@ -828,7 +658,7 @@ rf.quit()                       -- Request quit
     - Save, load, export functionality available via webapp UI
     - Cart management and sharing via Convex backend
 
-### Low Priority (Coming Soon)
+### ✅ Completed Multiplayer Features
 
 14. **✅ Multi-player Support** - Implemented!
     - `rf.is_multiplayer()` - Check if in multiplayer mode
@@ -851,19 +681,9 @@ rf.quit()                       -- Request quit
     - Built-in engine splash and credits states
     - Complete lifecycle: Initialize, Enter, HandleInput, Update, Draw, Exit, Shutdown
 
-16. **✅ Module-Based State System** - Implemented!
-    - `rf.import(filename)` - Load and register state modules automatically
-    - Convention-based: `menu_state.lua` → state name `"menu"`
-    - Required functions: `_INIT()`, `_UPDATE(dt)`, `_DRAW()`, `_HANDLE_INPUT()`, `_DONE()`
-    - Optional functions: `_ENTER()`, `_EXIT()`
-    - Module-level variable persistence (survives enter/exit cycles)
-    - Shared `context` table across all modules
-    - Automatic validation of required functions
-    - Isolated module environments with access to `rf.*`, `game.*`, and `context`
-
 ### Low Priority (Coming Soon)
 
-17. **Tilemap Layers** - Multi-layer support
+16. **Tilemap Layers** - Multi-layer support
     - 8-layer tilemap system (currently single layer)
 
 ---
@@ -874,7 +694,6 @@ rf.quit()                       -- Request quit
 |----------|--------|------------|--------|
 | **Graphics Primitives** | 9 | 15 | ✅ Better (more shapes + ellipses) |
 | **Sprite System** | Built-in | Built-in | ✅ Similar (name-based vs index-based) |
-| **Sprite Pooling** | ❌ No | ✅ Automatic | ✅ RetroForge advantage (transparent performance optimization) |
 | **Tilemap** | ✅ | ✅ | ✅ Implemented |
 | **Camera** | ✅ | ✅ | ✅ Implemented |
 | **Clipping** | ✅ | ✅ | ✅ Implemented |
@@ -890,14 +709,13 @@ rf.quit()                       -- Request quit
 | **Command Mode** | ✅ Built-in | ✅ Webapp UI | ✅ Save/load/export available |
 | **Multi-player** | ✅ Built-in (up to 4 players) | ✅ WebRTC (up to 6 players) | ✅ Implemented |
 | **State Machine** | ❌ No | ✅ Yes | ✅ RetroForge advantage |
-| **Module-Based States** | ❌ No | ✅ Yes | ✅ RetroForge advantage |
 | **Platforms** | Desktop + Web | Desktop + Web + Android | ✅ More platforms |
 | **Resolution** | 128×128 | 480×270 | ✅ Higher resolution |
 | **Palette** | 16 colors | 50 colors (state-based switching) | ✅ More colors + state switching |
 
-**Overall Assessment:** RetroForge now has feature parity with PICO-8's core graphics, tilemap, camera, memory APIs, and multiplayer support. Hot reload and debug tools are available in development mode (when running from folders). Command mode features (save, load, export) are available in the webapp UI. Multiplayer support is implemented via WebRTC with automatic state synchronization. RetroForge offers additional features like state machine management, module-based state system (`rf.import()`), physics, higher resolution, larger palette, Android support, and modern WebRTC-based multiplayer (up to 6 players). The main remaining advantage for PICO-8 is the all-in-one IDE experience, though RetroForge's webapp provides equivalent functionality in a browser-based interface.
+**Overall Assessment:** RetroForge now has feature parity with PICO-8's core graphics, tilemap, camera, memory APIs, and multiplayer support. Hot reload and debug tools are available in development mode (when running from folders). Command mode features (save, load, export) are available in the webapp UI. Multiplayer support is implemented via WebRTC with automatic state synchronization. RetroForge offers additional features like state machine management, physics, higher resolution, larger palette, Android support, and modern WebRTC-based multiplayer (up to 6 players). The main remaining advantage for PICO-8 is the all-in-one IDE experience, though RetroForge's webapp provides equivalent functionality in a browser-based interface.
 
 ---
 
-*Last Updated: RetroForge Engine now includes tilemap (256×256), camera, clipping, color remapping, pixel reading, sprite drawing, ellipse drawing, memory API, Box2D physics integration, hot reload (dev mode), debug tools (dev mode), cart persistence (cstore/reload, 512KB), text cursor/color state, command mode features (save/load/export via webapp), WebRTC-based multiplayer support (up to 6 players) with automatic state synchronization, a flexible state machine system with lifecycle callbacks, state stacking, and shared context, a module-based state system with `rf.import()` for convention-based state modules, and automatic sprite pooling for high-spawn sprites (transparent performance optimization). Full feature parity achieved with PICO-8's core APIs, including multiplayer, plus additional features like state management, module-based organization, physics, and automatic performance optimizations.*
+*Last Updated: RetroForge Engine now includes tilemap (256×256), camera, clipping, color remapping, pixel reading, sprite drawing, ellipse drawing, memory API, Box2D physics integration, hot reload (dev mode), debug tools (dev mode), cart persistence (cstore/reload, 512KB), text cursor/color state, command mode features (save/load/export via webapp), WebRTC-based multiplayer support (up to 6 players) with automatic state synchronization, and a flexible state machine system with lifecycle callbacks, state stacking, and shared context. Full feature parity achieved with PICO-8's core APIs, including multiplayer, plus additional features like state management and physics.*
 

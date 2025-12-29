@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import AdBanner from '@/components/ads/AdBanner'
 import SiteHeader from '@/components/layout/SiteHeader'
 import SiteFooter from '@/components/layout/SiteFooter'
 import { ConvexProvider } from '@/providers/ConvexProvider'
@@ -81,6 +80,12 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <head>
+        <meta name="google-adsense-account" content="ca-pub-7431399643348196" />
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7431399643348196"
+          crossOrigin="anonymous"
+        />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
@@ -91,13 +96,7 @@ export default function RootLayout({
               {/* Shared site header */}
               <SiteHeader />
 
-              {/* Top inline banner ad - centered below header */}
-              <AdBanner placement="top" />
-
               {children}
-
-              {/* Bottom banner ad - centered above shared footer */}
-              <AdBanner placement="bottom" />
 
               {/* Shared site footer */}
               <SiteFooter />

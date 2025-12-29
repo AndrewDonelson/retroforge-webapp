@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { BannerAd, DisplayAd, InArticleAd } from '@/components/ads';
+import { AD_SLOTS } from '@/lib/adSlots';
 
 interface PlatformBinary {
   platform: string;
@@ -209,6 +211,9 @@ export default function DownloadsPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* AD 1: Banner at top */}
+      <BannerAd adSlot={AD_SLOTS.banner1} />
+      
       <div className="bg-gray-800 rounded-xl p-6 shadow-lg">
         <h1 className="text-3xl font-bold text-retro-400 mb-2">Downloads</h1>
         <p className="text-gray-300 mb-6">
@@ -233,6 +238,9 @@ export default function DownloadsPage() {
           </div>
         )}
       </div>
+
+      {/* AD 2: After recommended download */}
+      <DisplayAd adSlot={AD_SLOTS.display1} size="300x250" />
 
       {/* Latest Release */}
       {latestRelease && (
@@ -343,6 +351,9 @@ export default function DownloadsPage() {
         </div>
       )}
 
+      {/* AD 3: Before installation instructions */}
+      <InArticleAd adSlot={AD_SLOTS.article1} />
+
       {/* Installation Instructions */}
       <div className="bg-gray-800 rounded-xl p-6 shadow-lg">
         <h2 className="text-2xl font-bold text-retro-400 mb-4">Installation Instructions</h2>
@@ -399,7 +410,7 @@ export default function DownloadsPage() {
             <li>Event bus system for decoupled communication</li>
             <li>Scheduler and runner for frame-based game loops</li>
             <li>Sprite management and sprite pools</li>
-            <li>Palette management (50-color palette system)</li>
+            <li>Palette management (64-color palette system)</li>
             <li>Module system (Lua file imports and hot-reloading in dev mode)</li>
             <li>Cart loading and asset management (.rf file format)</li>
             <li>Soft rendering engine (CPU-based pixel rendering)</li>
@@ -409,6 +420,9 @@ export default function DownloadsPage() {
           </ul>
         </div>
       </div>
+
+      {/* AD 4: After all content */}
+      <DisplayAd adSlot={AD_SLOTS.display2} size="336x280" />
     </div>
   );
 }

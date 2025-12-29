@@ -50,6 +50,34 @@ export const HUES_GAMEBOY_COLOR: string[] = ['#0b380f','#306230','#8bac0f','#9bb
 export const HUES_CYBERPUNK: string[] = ['#ff006e','#f9c80e','#00f5d4','#00bbf9','#3a0ca3','#7209b7','#4361ee','#4cc9f0','#f72585','#b5179e','#4895ef','#560bad','#2b2d42','#8d99ae','#ef233c','#ffd166']
 export const HUES_MONOKAI: string[] = ['#f92672','#fd971f','#e6db74','#a6e22e','#66d9ef','#ae81ff','#f8f8f2','#75715e','#272822','#1e1f29','#ff6188','#fc9867','#ffd866','#a9dc76','#78dce8','#ab9df2']
 
+// Generate 64-color palette (16 built-in + 48 game palette)
+export function generate64Palette(name: string, baseHues16: string[]): Palette {
+  // Built-in colors (0-15)
+  const builtinColors = [
+    '#000000', '#202020', '#464646', '#6D6D6D',
+    '#939393', '#BABABA', '#E0E0E0', '#FFFFFF',
+    '#FF0000', '#00FF00', '#0000FF', '#FFFF00',
+    '#00FFFF', '#FF00FF', '#FFA500', '#800080',
+  ]
+  
+  // Generate 48 game palette colors (indices 16-63)
+  const gameColors: string[] = []
+  for (let i = 0; i < 16 && gameColors.length < 48; i++) {
+    const base = baseHues16[i % baseHues16.length]
+    gameColors.push(shade(base, 60))   // highlight
+    if (gameColors.length < 48) gameColors.push(base)              // base
+    if (gameColors.length < 48) gameColors.push(shade(base, -60))  // shadow
+  }
+  
+  // Fill remaining with grayscale if needed
+  while (gameColors.length < 48) {
+    const v = (gameColors.length * 5) & 255
+    gameColors.push(rgbToHex(v, v, v))
+  }
+  
+  return { name, colors: [...builtinColors, ...gameColors] }
+}
+
 export const PRESET_50: Palette[] = [
   generate50Palette('RetroForge 50', HUES_RETROFORGE),
   generate50Palette('PICO-8+ 50', HUES_PICO8),
@@ -67,6 +95,26 @@ export const PRESET_50: Palette[] = [
   generate50Palette('Game Boy Color 50', HUES_GAMEBOY_COLOR),
   generate50Palette('Cyberpunk 50', HUES_CYBERPUNK),
   generate50Palette('Monokai 50', HUES_MONOKAI),
+]
+
+// 64-color palettes (new system)
+export const PRESET_64: Palette[] = [
+  generate64Palette('RetroForge 48', HUES_RETROFORGE),
+  generate64Palette('PICO-8+ 48', HUES_PICO8),
+  generate64Palette('Neon 48', HUES_NEON),
+  generate64Palette('Pastel 48', HUES_PASTEL),
+  generate64Palette('Earth 48', HUES_EARTH),
+  generate64Palette('Warcraft 48', HUES_WARCRAFT),
+  generate64Palette('StarCraft 48', HUES_STARCRAFT),
+  generate64Palette('Super Mario 48', HUES_SUPER_MARIO),
+  generate64Palette('Grayscale 48', HUES_GRAYSCALE),
+  generate64Palette('NES 48', HUES_NES),
+  generate64Palette('SNES 48', HUES_SNES),
+  generate64Palette('Genesis 48', HUES_GENESIS),
+  generate64Palette('Amiga 48', HUES_AMIGA),
+  generate64Palette('Game Boy Color 48', HUES_GAMEBOY_COLOR),
+  generate64Palette('Cyberpunk 48', HUES_CYBERPUNK),
+  generate64Palette('Monokai 48', HUES_MONOKAI),
 ]
 
 

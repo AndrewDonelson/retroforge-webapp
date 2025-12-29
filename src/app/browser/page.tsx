@@ -20,6 +20,8 @@ import { HeaderShareButton } from './components/HeaderShareButton'
 import { useFilteredCarts } from './hooks/useFilteredCarts'
 import { useCartsData } from './hooks/useCartsData'
 import { useShareUrl } from './hooks/useShareUrl'
+import { BannerAd, DisplayAd } from '@/components/ads'
+import { AD_SLOTS } from '@/lib/adSlots'
 
 // Recently viewed tracking (localStorage)
 const RECENTLY_VIEWED_KEY = 'retroforge_recently_viewed'
@@ -244,15 +246,7 @@ function BrowserPageInner() {
     addToRecentlyViewed(cartId)
   }
 
-  // Build list with a single sponsored card injected
-  const withSponsored = useMemo(() => {
-    if (filtered.length === 0) return filtered
-    const copy = [...filtered]
-    const insertAt = Math.min(4, copy.length)
-    const sentinel = '__ad__' + insertAt.toString()
-      ; (copy as any).splice(insertAt, 0, { id: sentinel } as any)
-    return copy
-  }, [filtered])
+  // No longer injecting sponsored cards inline - using dedicated ad placements instead
 
   // Pre-compute className strings to avoid Turbopack parsing issues
   const gridClassName = 'grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
@@ -264,6 +258,9 @@ function BrowserPageInner() {
 
   return (
     <div className="min-h-screen bg-gray-900">
+      {/* AD 1: Banner after header */}
+      <BannerAd adSlot={AD_SLOTS.banner1} />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
           <h1 className="text-3xl font-pixel text-retro-400">Browse Games</h1>
@@ -332,8 +329,12 @@ function BrowserPageInner() {
         </div>
       </div>
 
-      {/* Results count */}
-      <div className="text-gray-400 text-sm mb-3">
+      {/* AD 2: After filters, before results */}
+      <DisplayAd adSlot={AD_SLOTS.display1} size="300x250" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Results count */}
+        <div className="text-gray-400 text-sm mb-3">
         {isLoading ? (
           <span className="inline-block w-32 h-4 bg-gray-800 rounded animate-pulse"></span>
         ) : (
@@ -348,29 +349,32 @@ function BrowserPageInner() {
         )}
       </div>
 
-      {/* Grid or List View */}
-      {isLoading ? (
-        <div className={containerClassName}>
-          {Array.from({ length: 10 }).map((_, i) => (
-            <CartCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState
-          hasSearch={search.trim().length > 0}
-          hasGenres={selectedGenres.length > 0}
-          onClearFilters={clearAllFilters}
-        />
-      ) : (
-        <CartGrid
-          carts={withSponsored as Cart[]}
-          recentlyViewedIds={recentlyViewedIds}
-          onCardClick={handleCardClick}
-          viewMode={viewMode}
-        />
-      )}
+        {/* Grid or List View */}
+        {isLoading ? (
+          <div className={containerClassName}>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <CartCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            hasSearch={search.trim().length > 0}
+            hasGenres={selectedGenres.length > 0}
+            onClearFilters={clearAllFilters}
+          />
+        ) : (
+          <CartGrid
+            carts={filtered}
+            recentlyViewedIds={recentlyViewedIds}
+            onCardClick={handleCardClick}
+            viewMode={viewMode}
+          />
+        )}
+      </div>
+
+      {/* AD 3: After results */}
+      <DisplayAd adSlot={AD_SLOTS.display2} size="336x280" />
     </div>
-    // </div>  i commented out this div and it is now building
   )
 }
 

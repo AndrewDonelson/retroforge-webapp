@@ -2,7 +2,6 @@
 
 import { Cart } from '../types'
 import { CartCard } from './CartCard'
-import AdCard from '@/components/ads/AdCard'
 
 interface CartGridProps {
   carts: Cart[]
@@ -19,11 +18,6 @@ export function CartGrid({ carts, recentlyViewedIds, onCardClick, viewMode }: Ca
   return (
     <div className={containerClassName}>
       {carts.map((cart, index) => {
-        // Render sponsored card when sentinel is hit
-        if ('id' in cart && (cart as any).id?.toString().startsWith('__ad__')) {
-          return <AdCard key={(cart as any).id} />
-        }
-
         const isRecentlyViewed = recentlyViewedIds.has(cart.id)
         const animationDelayValue = (index * 50).toString() + 'ms'
 

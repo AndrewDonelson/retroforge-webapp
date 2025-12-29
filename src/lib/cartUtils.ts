@@ -12,7 +12,7 @@ export interface CartManifest {
   genre: string
   tags?: string[]
   entry: string // e.g., "main.lua"
-  palette?: string // Optional palette name (e.g., "RetroForge 50")
+  palette?: string // Optional palette name (e.g., "RetroForge 48")
   scale?: number // Optional default scale for cart display
 }
 
@@ -74,6 +74,34 @@ export interface SpriteData {
 
 export interface SpriteMap {
   [name: string]: SpriteData
+}
+
+export interface TileData {
+  width: number
+  height: number
+  type?: "static" | "frames" | "animation"
+  pixels?: number[][]
+  frames?: SpriteFrame[]
+  animations?: AnimationSequence[]
+  useCollision?: boolean
+  mountPoints?: MountPoint[]
+}
+
+export interface TilesetMap {
+  [name: string]: TileData
+}
+
+export interface TilesetData {
+  isISO?: boolean
+  seed?: number
+  tiles: TilesetMap
+}
+
+export interface TileMap {
+  tilesetName: string
+  width: number
+  height: number
+  tiles: string[][] // 2D array of tile names (empty string = no tile)
 }
 
 export interface UnpackedCart {

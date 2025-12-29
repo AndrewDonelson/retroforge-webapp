@@ -13,6 +13,8 @@ interface SpriteCanvasProps {
   currentPalette: Palette
   selection: Selection | null
   mountPoints: MountPoint[]
+  pastePreview: { x: number; y: number } | null
+  clipboard: { data: SpriteData; width: number; height: number } | null
   canvasRef: React.RefObject<HTMLDivElement | null>
   onMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void
   onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
@@ -28,6 +30,8 @@ export function SpriteCanvas({
   currentPalette,
   selection,
   mountPoints,
+  pastePreview,
+  clipboard,
   canvasRef,
   onMouseDown,
   onMouseMove,
@@ -84,6 +88,42 @@ export function SpriteCanvas({
             height: `${(Math.abs(selection.y1 - selection.y0) + 1) * pixelSize}px`,
           }}
         />
+      )}
+      {/* Paste preview overlay */}
+      {pastePreview && clipboard && (
+        <div
+          className="absolute border-2 border-blue-500 pointer-events-auto bg-blue-500/20 cursor-move"
+          style={{
+            left: `${pastePreview.x * pixelSize}px`,
+            top: `${pastePreview.y * pixelSize}px`,
+            width: `${clipboard.width * pixelSize}px`,
+            height: `${clipboard.height * pixelSize}px`,
+            zIndex: 15,
+          }}
+        >
+          {clipboard.data.map((row, sy) =>
+            row.map((colorIndex, sx) => (
+              <div
+                key={`${sx}-${sy}`}
+                className="absolute border border-blue-400/30"
+                style={{
+                  left: `${sx * pixelSize}px`,
+                  top: `${sy * pixelSize}px`,
+                  width: `${pixelSize}px`,
+                  height: `${pixelSize}px`,
+                  backgroundColor: colorIndex === -1
+                    ? 'transparent'
+                    : currentPalette.colors[colorIndex] || '#000000',
+                  backgroundImage: colorIndex === -1
+                    ? 'linear-gradient(45deg, #333 25%, transparent 25%), linear-gradient(-45deg, #333 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #333 75%), linear-gradient(-45deg, transparent 75%, #333 75%)'
+                    : 'none',
+                  backgroundSize: colorIndex === -1 ? '4px 4px' : 'auto',
+                  opacity: 0.7,
+                }}
+              />
+            ))
+          )}
+        </div>
       )}
       {/* Mount points overlay */}
       {mountPoints.map((mp, idx) => (

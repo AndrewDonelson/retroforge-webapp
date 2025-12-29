@@ -166,8 +166,75 @@ No installation needed! Just:
 git clone https://github.com/AndrewDonelson/retroforge-engine.git
 cd retroforge-engine
 go mod download
-go build -o retroforge ./cmd/retroforge
+make release          # Build RetroForge engine
+make imgtool-release  # Build Image Tool CLI
 ```
+
+#### Image Tool CLI
+
+The Image Tool (`imgtool`) is a command-line utility for converting PNG images to RetroForge sprites and palettes.
+
+**Build:**
+```bash
+make imgtool-release  # Build release binary
+```
+
+**Usage:**
+```bash
+# Quantize image to 50-color palette
+./imgtool quantize input.png -o palette.json
+
+# Map image to existing palette
+./imgtool mappalette input.png palette.json -o indices.json
+
+# Scale image
+./imgtool scale input.png -w 32 -h 32 -o scaled.json
+
+# Convert PNG to sprite (complete pipeline)
+./imgtool tosprite input.png palette.json -n "sprite" -o sprite.json --collision
+```
+
+#### Tile2ISO Tool CLI
+
+The Tile2ISO tool (`tile2iso`) converts 2D top-down sprites into isometric (2.5D) tiles.
+
+**Build:**
+```bash
+go build -o tile2iso ./cmd/tile2iso
+```
+
+**Usage:**
+```bash
+# Create isometric tile from three sprites
+tile2iso convert \
+  --sprites assets/sprites.json \
+  --palette assets/palette.json \
+  --top grass_top \
+  --left grass_side \
+  --right grass_side \
+  --name grass_tile \
+  --lighting gradient \
+  --update
+
+# Use specific frames from multi-frame sprites
+tile2iso convert \
+  --sprites assets/sprites.json \
+  --palette assets/palette.json \
+  --top stone_top \
+  --top-frame default \
+  --left stone_side \
+  --left-frame default \
+  --right stone_side \
+  --right-frame default \
+  --name stone_tile \
+  --update
+```
+
+**Lighting Modes:**
+- `normal`: No lighting adjustments
+- `basic`: Uniform brightness (left: +20%, right: -20%)
+- `full`: Enhanced top/bottom regions (stylized)
+- `gradient`: Smooth vertical gradient (recommended)
 
 ### Your First Cart
 
@@ -258,16 +325,16 @@ Called **every frame** (60 times per second). Use for:
 
 ```lua
 function _UPDATE(dt)
-  -- Move player
+  -- Move player (use dt for frame-rate independence)
   if rf.btn(4) then  -- LEFT (button 4)
-    player.vx = -3
+    player.vx = -60 * dt  -- 60 pixels per second
   elseif rf.btn(5) then  -- RIGHT (button 5)
-    player.vx = 3
+    player.vx = 60 * dt
   else
     player.vx = 0
   end
   
-  player.x = player.x + player.vx * dt * 60  -- Scale by dt for frame-independent movement
+  player.x = player.x + player.vx  -- dt already included in vx calculation
 end
 ```
 
@@ -383,27 +450,30 @@ RetroForge uses a **universal 11-button input system** that works consistently a
 - Y (9): `X`
 - TURBO (10): `Left Shift`, `Right Shift`
 
+**Mobile/Tablet:**
+On mobile and tablet devices in portrait mode, an on-screen virtual controller is automatically displayed below the canvas. The controller maps directly to the 11-button system with optimized layouts:
+- **Portrait**: Large D-pad top-left, action buttons bottom-right, Select/Start on left side
+- **Landscape**: Traditional 3-column layout
+
 **Functions:**
 - `rf.btn(button)` - Check if button is held (0-10)
 - `rf.btnp(button)` - Check if button was just pressed (edge-triggered)
 - `rf.btnr(button)` - Check if button was just released
 - `rf.shift()` - Alias for `rf.btn(10)` (TURBO button, backward compatibility)
 
-**Mobile/Tablet:**
-On mobile and tablet devices in portrait mode, an on-screen virtual controller is automatically displayed below the canvas. The controller maps directly to the 11-button system.
-
-**Example:**
 ```lua
-function _UPDATE(dt)
-  -- Movement (continuous)
-  if rf.btn(4) then  -- LEFT held
-    player.x = player.x - 3
-  end
-  
-  -- Jump (one-time)
+function _HANDLE_INPUT()
+  -- Handle button presses (instant actions)
   if rf.btnp(6) then  -- A button just pressed
-    player.vy = -10
+    player.jump()
     rf.sfx("jump")
+  end
+end
+
+function _UPDATE(dt)
+  -- Movement (continuous) - use dt for frame-rate independence
+  if rf.btn(4) then  -- LEFT held
+    player.x = player.x - 60 * dt  -- 60 pixels per second
   end
   
   -- Boost with TURBO
@@ -412,6 +482,9 @@ function _UPDATE(dt)
   end
 end
 ```
+
+**Frame-Rate Independence:**
+Always multiply movement by `dt` (delta time in seconds) to ensure consistent speed across platforms. The engine uses actual elapsed time, not fixed frame duration, ensuring WASM and desktop builds run at the same speed.
 
 ---
 
@@ -557,20 +630,62 @@ rf.addSpriteFrame("player", "right", rightPixels)
 rf.spr("player", x, y, "idle")
 ```
 
-**Animation Control:**
+**`rf.addSpriteFrame(spriteName, frameName, pixels)`** - Add frame to sprite
 ```lua
--- Add animation
+local pixels = {
+  {0, 0, 0, 0},
+  {0, 1, 1, 0},
+  {0, 1, 1, 0},
+  {0, 0, 0, 0}
+}
+rf.addSpriteFrame("player", "idle", pixels)
+```
+
+**`rf.addSpriteAnimation(spriteName, animName, frameRefs, [speed], [loop], [loopType])`** - Add animation
+```lua
+-- Add walk animation
 local frameRefs = {"walk_1", "walk_2", "walk_3"}
 rf.addSpriteAnimation("player", "walk", frameRefs, 1.0, true, "forward")
 
--- Control animation
+-- Play animation
 rf.playAnimation("player", "walk")
+```
+
+#### Animation Control
+
+**`rf.playAnimation(spriteName, animationName)`** - Start animation
+```lua
+rf.playAnimation("player", "walk")
+```
+
+**`rf.pauseAnimation(spriteName)`** - Pause animation
+```lua
 rf.pauseAnimation("player")
+```
+
+**`rf.resumeAnimation(spriteName)`** - Resume animation
+```lua
 rf.resumeAnimation("player")
+```
+
+**`rf.stopAnimation(spriteName)`** - Stop animation
+```lua
 rf.stopAnimation("player")
+```
+
+**`rf.setAnimationSpeed(spriteName, speed)`** - Set animation speed
+```lua
 rf.setAnimationSpeed("player", 2.0)  -- Double speed
-rf.setAnimationFrame("player", 2)     -- Jump to frame 2
-local frame = rf.getAnimationFrame("player")  -- Get current frame
+```
+
+**`rf.setAnimationFrame(spriteName, frameIndex)`** - Set frame index
+```lua
+rf.setAnimationFrame("player", 2)  -- Jump to frame 2
+```
+
+**`rf.getAnimationFrame(spriteName)`** - Get current frame
+```lua
+local frame = rf.getAnimationFrame("player")
 ```
 
 #### Drawing to Sprites
@@ -610,6 +725,71 @@ rf.setSpriteProperty("bullet", "maxSpawn", 50)  -- Max 50 at once
 - Sprites with `isUI=false` AND `maxSpawn > 10` are automatically pooled
 - Improves performance by reusing instances
 - Transparent to developer (no code changes needed)
+
+### Image Tool API
+
+The Image Tool provides powerful image processing capabilities for converting PNG images into RetroForge-compatible formats.
+
+#### Converting PNG to Sprite
+
+**`rf.imgtool.to_sprite(png_data, palette, options)`** - Complete conversion pipeline
+```lua
+local palette = rf.imgtool.load_palette("assets/custom_palette.json")
+local sprite = rf.imgtool.to_sprite("assets/character.png", palette, {
+    name = "player",
+    width = 16,
+    height = 16,
+    use_collision = true,
+    is_ui = false,
+    dither = "floyd-steinberg"
+})
+
+-- Register the sprite
+rf.setSpriteProperty("player", "useCollision", true)
+```
+
+#### Quantizing Images
+
+**`rf.imgtool.quantize(png_data, options)`** - Extract 50-color palette
+```lua
+local palette = rf.imgtool.quantize("assets/art.png", {
+    dither = "floyd-steinberg",
+    alpha_threshold = 128,
+    enforce_black_white = true
+})
+-- Returns array of 50 hex color strings
+```
+
+#### Mapping Images to Palettes
+
+**`rf.imgtool.map_palette(png_data, palette, options)`** - Convert to palette indices
+```lua
+local palette = {"#000000", "#ffffff", "#ff0000", ...}  -- 50 colors
+local indices = rf.imgtool.map_palette("assets/sprite.png", palette, {
+    dither = "ordered",
+    alpha_threshold = 128
+})
+-- Returns 2D array: indices[y][x] = palette index (0-49 or -1)
+```
+
+#### Scaling Images
+
+**`rf.imgtool.scale(png_data, options)`** - Resize images
+```lua
+local rgb_data = rf.imgtool.scale("assets/large.png", {
+    width = 32,
+    height = 32,
+    algorithm = "bilinear",
+    preserve_aspect = true
+})
+-- Returns 3D array: rgb_data[y][x] = {R, G, B, A}
+```
+
+**Best Practices:**
+- Use `"floyd-steinberg"` dithering for best quality (slower)
+- Use `"ordered"` dithering for faster processing (patterned)
+- Use `"nearest"` scaling for pixel art, `"bilinear"` for photos
+- Always validate palettes have exactly 50 colors
 
 ### Physics API
 
@@ -1237,6 +1417,52 @@ function _DRAW()
 end
 ```
 
+### Example 4: Using Image Tool
+
+```lua
+-- main.lua
+-- Convert PNG to sprite at runtime
+function _INIT()
+  -- Load or define palette
+  local palette = rf.imgtool.load_palette("assets/custom_palette.json")
+  
+  -- Convert PNG to sprite
+  local sprite = rf.imgtool.to_sprite("assets/enemy.png", palette, {
+    name = "enemy",
+    width = 16,
+    height = 16,
+    use_collision = true,
+    is_ui = false,
+    dither = "floyd-steinberg"
+  })
+  
+  -- Sprite is now available as "enemy"
+  enemies = {}
+end
+
+function _UPDATE(dt)
+  -- Spawn enemies using converted sprite
+  if math.random() < 0.01 then
+    table.insert(enemies, {x = 480, y = math.random(100, 200)})
+  end
+  
+  -- Update enemies
+  for i, e in ipairs(enemies) do
+    e.x = e.x - 2
+    if e.x < -16 then
+      table.remove(enemies, i)
+    end
+  end
+end
+
+function _DRAW()
+  rf.clear_i(0)
+  for _, e in ipairs(enemies) do
+    rf.spr("enemy", e.x, e.y)
+  end
+end
+```
+
 ---
 
 ## Troubleshooting
@@ -1265,6 +1491,12 @@ end
 - Only host should modify synced tables
 - Use appropriate sync tiers
 - Check that `rf.network_sync()` is called in `_INIT()`
+
+**6. Image Tool Errors**
+- Ensure PNG files are valid and accessible
+- Verify palettes have exactly 50 colors
+- Check that sprite dimensions are within limits (1-256 pixels)
+- Use file paths relative to cart root (e.g., `"assets/image.png"`)
 
 ### Debugging
 

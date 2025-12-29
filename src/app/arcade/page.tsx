@@ -7,6 +7,8 @@ import { Id } from '@/convex/_generated/dataModel';
 import Controller from '@/components/Controller/Controller';
 import { useController, isMobilePortrait } from '@/lib/useController';
 import { setupInput, initAudio } from '@/lib/wasmInterface';
+import { DisplayAd } from '@/components/ads';
+import { AD_SLOTS } from '@/lib/adSlots';
 
 export const dynamic = 'force-dynamic';
 
@@ -226,6 +228,12 @@ export default function ArcadePage() {
 
   return (
     <div className={`max-w-6xl mx-auto p-4 ${showController ? 'flex flex-col' : ''} ${isFullscreen ? 'fixed inset-0 w-screen h-screen max-w-full max-h-full z-[9998] overflow-hidden bg-gray-900 flex flex-col' : ''}`}>
+      {!isFullscreen && (
+        <>
+          {/* AD 1: Before game area */}
+          <DisplayAd adSlot={AD_SLOTS.display1} size="300x250" />
+        </>
+      )}
       {!showController && !isFullscreen && (
         <h1 className="text-2xl font-semibold mb-4">Arcade</h1>
       )}
@@ -541,6 +549,13 @@ export default function ArcadePage() {
           }
         }
       `}</style>
+      
+      {!isFullscreen && (
+        <>
+          {/* AD 2: After game area */}
+          <DisplayAd adSlot={AD_SLOTS.display2} size="336x280" />
+        </>
+      )}
     </div>
   );
 }

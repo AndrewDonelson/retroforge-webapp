@@ -12,6 +12,19 @@ export function PWAInstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
 
+  // Helper function to check if prompt should be shown
+  const shouldShowPrompt = (): boolean => {
+    const dismissed = localStorage.getItem('pwa-install-dismissed')
+    if (!dismissed) {
+      return true // Never dismissed, show it
+    }
+    
+    const dismissedTime = parseInt(dismissed, 10)
+    const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24)
+    // Show again after 7 days
+    return daysSinceDismissed >= 7
+  }
+
   useEffect(() => {
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -22,22 +35,17 @@ export function PWAInstallPrompt() {
     // Listen for beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
+      
+      // Check if we should show the prompt (hasn't been dismissed or 7 days passed)
+      if (!shouldShowPrompt()) {
+        return // Don't show if dismissed recently
+      }
+      
       setDeferredPrompt(e as BeforeInstallPromptEvent)
       setShowPrompt(true)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-
-    // Check if user already dismissed the prompt (stored in localStorage)
-    const dismissed = localStorage.getItem('pwa-install-dismissed')
-    if (dismissed) {
-      const dismissedTime = parseInt(dismissed, 10)
-      const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24)
-      // Show again after 7 days
-      if (daysSinceDismissed < 7) {
-        setShowPrompt(false)
-      }
-    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
